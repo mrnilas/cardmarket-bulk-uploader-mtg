@@ -31,6 +31,11 @@ export interface CardRow {
   altered: boolean;
   signed: boolean;
   scryfallId: string;
+  /**
+   * Cardmarket product id (`idProduct`), resolved via Scryfall.
+   * `undefined` = not resolved yet, `null` = Scryfall knows no Cardmarket id.
+   */
+  cardmarketId?: number | null;
   /** Buying price from the source app – NOT a selling price. */
   purchasePrice?: number;
   purchaseCurrency?: string;

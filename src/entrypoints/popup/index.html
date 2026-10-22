@@ -17,7 +17,12 @@
 
       <p id="status" class="muted">No file imported yet.</p>
 
-      <section id="summary" hidden>
+      <details id="issues" hidden>
+        <summary id="issues-title"></summary>
+        <ul id="issues-list"></ul>
+      </details>
+
+      <section id="import" hidden>
         <dl>
           <dt>Rows</dt><dd id="s-rows"></dd>
           <dt>Cards</dt><dd id="s-cards"></dd>
@@ -25,14 +30,38 @@
           <dt>Finish</dt><dd id="s-finish"></dd>
           <dt>Language</dt><dd id="s-lang"></dd>
         </dl>
+
+        <h2>Cardmarket match</h2>
+        <p id="resolve-status" class="muted"></p>
+        <button id="resolve" type="button">Match via Scryfall</button>
+
+        <h2>This run</h2>
+        <label class="row">
+          <span>Language to list</span>
+          <select id="language"></select>
+        </label>
+        <p id="run-progress" class="muted"></p>
+
+        <h2>Minimum price (€)</h2>
+        <p class="muted">Price = Cardmarket trend, but never below:</p>
+        <div class="prices">
+          <label>Common <input id="min-common" type="number" min="0.02" step="0.01" /></label>
+          <label>Uncommon <input id="min-uncommon" type="number" min="0.02" step="0.01" /></label>
+          <label>Rare <input id="min-rare" type="number" min="0.02" step="0.01" /></label>
+          <label>Mythic <input id="min-mythic" type="number" min="0.02" step="0.01" /></label>
+        </div>
+
+        <p id="table-warning" class="warning" hidden>
+          The expansion table is empty. Run <code>npm run gen:expansions</code> and rebuild – until then
+          only cards matched via Scryfall are found, and the panel cannot suggest expansions.
+        </p>
+
+        <button id="open" type="button" class="primary">Open Cardmarket listing</button>
+        <div class="actions">
+          <button id="reset-progress" type="button">Reset progress</button>
+          <button id="clear" type="button">Clear import</button>
+        </div>
       </section>
-
-      <details id="issues" hidden>
-        <summary id="issues-title"></summary>
-        <ul id="issues-list"></ul>
-      </details>
-
-      <button id="clear" type="button" hidden>Clear import</button>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>

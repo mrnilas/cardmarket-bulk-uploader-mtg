@@ -1,0 +1,4 @@
+{
+  "comment": "Manual corrections, merged on top of expansions.json. Format: \"SETCODE\": { \"name\": \"Cardmarket name\", \"ids\": [idExpansion, ...] }",
+  "sets": {}
+}

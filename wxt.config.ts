@@ -10,7 +10,7 @@ export default defineConfig({
     description:
       'Bulk-list Magic: The Gathering cards from a ManaBox CSV export in your Cardmarket store.',
     permissions: ['storage'],
-    host_permissions: ['*://*.cardmarket.com/*'],
+    host_permissions: ['*://*.cardmarket.com/*', 'https://api.scryfall.com/*'],
     ...(browser === 'firefox' && {
       browser_specific_settings: {
         gecko: {

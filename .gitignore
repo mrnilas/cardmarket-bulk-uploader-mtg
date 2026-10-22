@@ -11,6 +11,7 @@ web-ext.config.ts
 *.htm
 *.html
 !src/**/*.html
+!tests/fixtures/*.html
 _private/
 
 # Private card lists – never commit your real exports

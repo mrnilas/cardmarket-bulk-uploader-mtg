@@ -1,0 +1,53 @@
+<!-- Minimal structural replica of Cardmarket's "List by expansion" page (2026-10-22).
+     Hand-written for tests, no session data. See docs/cardmarket-bulk-listing.md. -->
+<form method="GET" action="">
+  <select name="idExpansion">
+    <option value="5658">Bloomburrow</option>
+    <option value="5982" selected="selected">Aetherdrift</option>
+  </select>
+</form>
+<div class="pagination">
+  <a role="button" data-direction="prev" class="pagination-control disabled"></a>
+  <span>Page 1 of 3</span>
+  <a href="/en/Magic/Stock/ListingMethods/BulkListing?idExpansion=5982&amp;sortBy=number&amp;site=2" role="button" data-direction="next" class="pagination-control"></a>
+</div>
+<form method="POST" id="BulkListingForm">
+  <table>
+    <tbody>
+      <tr id="BulkListingRow0">
+        <td><input type="checkbox" name="select[]"></td>
+        <td><div class="col-product"><a href="#">Lichtfeld-Gleiter</a><span class="fst-italic">Brightfield Glider</span></div></td>
+        <td><select name="idLanguage[0]"><option value="1">English</option><option value="3">German</option></select></td>
+        <td><select name="idCondition[0]"><option value="1">MT</option><option value="2" selected="selected">NM</option><option value="3">EX</option><option value="4">GD</option><option value="5">LP</option><option value="6">PL</option><option value="7">PO</option></select></td>
+        <td><input type="checkbox" name="isFoil[0]"></td>
+        <td><input type="checkbox" name="isSigned[0]"></td>
+        <td><input type="text" name="comments[0]"></td>
+        <td><input type="number" name="amount[0]" min="0" max="32" value="0"></td>
+        <td><input type="text" name="price[0]"></td>
+        <td><button type="button" class="copy-row-button"></button></td>
+        <td>
+          <input type="number" name="idProduct[0]" value="808219">
+          <input type="number" name="lowPrice" value="0.02" disabled>
+          <input type="number" name="trendPrice" value="0.09" disabled>
+        </td>
+      </tr>
+      <tr id="BulkListingRow1">
+        <td><input type="checkbox" name="select[]"></td>
+        <td><div class="col-product"><a href="#">Basri, Tomorrow's Champion</a></div></td>
+        <td><select name="idLanguage[1]"><option value="1">English</option><option value="3">German</option></select></td>
+        <td><select name="idCondition[1]"><option value="1">MT</option><option value="2" selected="selected">NM</option><option value="3">EX</option><option value="4">GD</option><option value="5">LP</option><option value="6">PL</option><option value="7">PO</option></select></td>
+        <td><input type="checkbox" name="isFoil[1]"></td>
+        <td><input type="checkbox" name="isSigned[1]"></td>
+        <td><input type="text" name="comments[1]"></td>
+        <td><input type="number" name="amount[1]" min="0" max="32" value="0"></td>
+        <td><input type="text" name="price[1]"></td>
+        <td><button type="button" class="copy-row-button"></button></td>
+        <td>
+          <input type="number" name="idProduct[1]" value="807000">
+          <input type="number" name="trendPrice" value="1.75" disabled>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</form>
+<input type="submit" value="List card(s)" form="BulkListingForm">
