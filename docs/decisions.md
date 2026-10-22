@@ -8,8 +8,11 @@
 | 4 | 2026-10-22 | Framework: WXT + TypeScript | One codebase for Chrome and Firefox, Manifest V3 |
 | 5 | 2026-10-22 | Input format: ManaBox CSV, parsed into a source-agnostic `CardRow` model | Other exporters (Dragon Shield, Delver, …) can be added as extra parsers later |
 | 6 | 2026-10-22 | Proxy rows are skipped with a warning | Proxies must not be sold |
+| 7 | 2026-10-22 | Target page: "List by expansion" (`BulkListing`), not "List mixed products" | Exact matching via `idProduct`, ~100× fewer requests, low bot risk – see [analysis](cardmarket-bulk-listing.md) |
+| 8 | 2026-10-22 | Work happens on `dev`; `main` only receives tested states | Keep `main` releasable |
 
 ## Open
-- Target form on Cardmarket: "List bulk items" (max. 100 per expansion) vs. "List Mixed Products"
-- Selling price: ManaBox `Purchase price` is the buying price, not a selling price
-- Exact Cardmarket names/IDs for languages and expansions (to be verified against the live form)
+- Matching CSV row → table row (Scryfall `cardmarket_id`, English name, or both)
+- Resolving the Cardmarket `idExpansion` for a card/set
+- Submit mode (fill only, confirm per batch, …)
+- Selling price rule: ManaBox `Purchase price` is the buying price; the page offers low/trend/avg prices

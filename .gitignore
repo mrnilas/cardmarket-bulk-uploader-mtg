@@ -7,6 +7,12 @@ web-ext.config.ts
 .env
 .env.*
 
+# Saved Cardmarket pages contain session tokens
+*.htm
+*.html
+!src/**/*.html
+_private/
+
 # Private card lists – never commit your real exports
 *.csv
 !tests/fixtures/*.csv

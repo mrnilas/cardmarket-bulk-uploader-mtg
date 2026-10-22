@@ -29,6 +29,11 @@ ManaBox CSV export in the user's Cardmarket store.
 - `src/lib/targets/listing-target.ts` – adapter interface for Cardmarket listing pages
 - `src/entrypoints/` – WXT entrypoints (popup, later content scripts)
 - `docs/decisions.md` – decision log; append new decisions there
+- `docs/cardmarket-bulk-listing.md` – structure of Cardmarket's listing pages (form fields, IDs, limits)
+
+## Git workflow
+- Work on `dev`; merge into `main` only when `npm run check` and both builds pass.
+- Never commit saved Cardmarket pages (they contain session tokens).
 
 ## Conversation language
 The maintainer communicates in German; code, comments and commits are in English.
