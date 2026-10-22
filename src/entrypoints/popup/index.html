@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cardmarket Bulk Uploader</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Cardmarket Bulk Uploader</h1>
+
+      <label class="file">
+        <span>ManaBox CSV</span>
+        <input id="file" type="file" accept=".csv,text/csv" />
+      </label>
+
+      <p id="status" class="muted">No file imported yet.</p>
+
+      <section id="summary" hidden>
+        <dl>
+          <dt>Rows</dt><dd id="s-rows"></dd>
+          <dt>Cards</dt><dd id="s-cards"></dd>
+          <dt>Sets</dt><dd id="s-sets"></dd>
+          <dt>Finish</dt><dd id="s-finish"></dd>
+          <dt>Language</dt><dd id="s-lang"></dd>
+        </dl>
+      </section>
+
+      <details id="issues" hidden>
+        <summary id="issues-title"></summary>
+        <ul id="issues-list"></ul>
+      </details>
+
+      <button id="clear" type="button" hidden>Clear import</button>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

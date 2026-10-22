@@ -1,0 +1,12 @@
+node_modules/
+.output/
+.wxt/
+web-ext.config.ts
+*.log
+.DS_Store
+.env
+.env.*
+
+# Private card lists – never commit your real exports
+*.csv
+!tests/fixtures/*.csv
