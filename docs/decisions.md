@@ -14,6 +14,6 @@
 | 10 | 2026-10-22 | Expansions: mapping table in the repo, Scryfall set code → one or more Cardmarket `idExpansion`s (main set plus Extras/Promos/Tokens) | Cardmarket splits sets that Scryfall keeps together; table is verifiable via the set code in product image URLs |
 | 11 | 2026-10-22 | Submit mode: the extension only fills the form; the user reviews and clicks "list" | Maximum control, no auto-submit |
 
-## Open
-- Selling price rule: ManaBox `Purchase price` is the buying price; the page offers low/trend/avg prices
-- Foil and non-foil of the same product in one pass (copy row vs. two passes)
+| 12 | 2026-10-22 | Price: row's `trendPrice`, but never below a minimum per rarity (defaults: 0.10 € common/uncommon, 0.25 € rare/mythic; Cardmarket floor 0.02 €) | Market-based, protects bulk from being sold for cents |
+| 13 | 2026-10-22 | Foil + non-foil of the same product: duplicate the row via Cardmarket's "copy row" button; fall back to a second pass if copying fails | One pass per page where possible |
+| 14 | 2026-10-22 | One language per run: the user uploads each language separately; rows of other languages are not filled | Avoids multiple language variants sharing one table row |
