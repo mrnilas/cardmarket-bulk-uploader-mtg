@@ -26,7 +26,7 @@ export interface Progress {
   listed: number[];
 }
 
-/** The last imported card list, shared between popup and content script. */
+/** The last imported card list, shared by all listing tabs and the background script. */
 export const currentImport = storage.defineItem<StoredImport | null>('local:currentImport', {
   fallback: null,
 });

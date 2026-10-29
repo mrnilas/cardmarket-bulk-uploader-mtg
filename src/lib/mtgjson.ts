@@ -2,7 +2,7 @@
  * Builds the expansion table (set code → Cardmarket `idExpansion`s) from
  * MTGJSON's SetList (MIT licensed): https://mtgjson.com/api/v5/SetList.json
  *
- * Used at runtime by the popup and by scripts/generate-expansions.mjs for the
+ * Used at runtime by the background script and by scripts/generate-expansions.mjs for the
  * bundled fallback, so this module must stay free of runtime imports.
  */
 import type { ExpansionTable } from './expansions';

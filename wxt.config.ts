@@ -10,6 +10,8 @@ export default defineConfig({
     description:
       'Bulk-list Magic: The Gathering cards from a ManaBox CSV export in your Cardmarket store.',
     permissions: ['storage'],
+    // No popup: clicking the icon opens the listing page, where the panel does everything.
+    action: { default_title: 'Open Cardmarket listing' },
     host_permissions: ['*://*.cardmarket.com/*', 'https://mtgjson.com/*'],
     ...(browser === 'firefox' && {
       browser_specific_settings: {

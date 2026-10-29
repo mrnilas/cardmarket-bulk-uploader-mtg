@@ -63,6 +63,35 @@ button, a.button {
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.icon { width: auto; margin: 0; padding: 0 6px; border: 0; color: var(--muted); }
+button.small { width: auto; margin: 0; padding: 2px 8px; font-size: 12px; }
+details.setup { margin: 8px 0 4px; padding: 0 10px 10px; border: 1px solid var(--border); border-radius: 8px; }
+details.setup > summary { margin: 0; padding: 8px 0 0; font-weight: 600; }
+.field { display: grid; gap: 4px; margin-top: 8px; font-weight: 600; }
+input, select { font: inherit; color: var(--fg); }
+input[type='file'] { font-weight: 400; max-width: 100%; }
+input[type='number'], select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+}
+select option { background: var(--bg); }
+fieldset.prices { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0 0; padding: 0; border: 0; }
+fieldset.prices legend { padding: 0; margin-bottom: 4px; color: var(--muted); }
+fieldset.prices label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
+.actions { display: flex; gap: 6px; }
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
 .muted { color: var(--muted); }
 .ok { color: var(--ok); }
 .warn { color: var(--warn); }

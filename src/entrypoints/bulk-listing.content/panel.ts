@@ -19,6 +19,7 @@ import {
 } from '../../lib/store';
 import { formatNumber, h } from '../../lib/ui/dom';
 import { PANEL_CSS } from './panel-css';
+import { expansionFooter, setupSection, updateExpansions, type SetupState } from './setup';
 
 /** How long to wait for Cardmarket's "recently listed" area after submitting. */
 const CONFIRM_TIMEOUT_MS = 20_000;
@@ -29,7 +30,7 @@ type SubmitState =
   | { kind: 'confirmed'; cards: number }
   | { kind: 'unconfirmed'; sourceLines: number[] };
 
-interface State {
+interface State extends SetupState {
   plan?: PagePlan;
   report?: FillReport;
   submit: SubmitState;
@@ -47,7 +48,7 @@ export function mountPanel(): () => void {
   shadow.append(style, root);
   document.body.append(host);
 
-  const state: State = { submit: { kind: 'idle' }, collapsed: false };
+  const state: State = { submit: { kind: 'idle' }, collapsed: false, issues: [], expansionUpdating: false };
 
   const render = async () => {
     root.replaceChildren(...(await buildContent(state, render)));
@@ -59,12 +60,13 @@ export function mountPanel(): () => void {
   };
   document.addEventListener('click', onClick, true);
 
-  // Re-plan when the popup changes import or settings, but never under a filled form.
+  // Re-plan when import, settings or the expansion table change (also from other tabs), but never under a filled form.
   const unwatch = watchStorage(() => {
     if (!state.report) void render();
   });
 
   void render();
+  void updateExpansions(state, render, false);
 
   return () => {
     unwatch();
@@ -98,10 +100,9 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   const { listed } = await progress.getValue();
   const expansions = await loadExpansionIndex();
 
-  if (!data) return [header, h('p', { class: 'muted' }, 'No CSV imported. Open the extension popup to import one.')];
-  if (!settings.language) {
-    return [header, h('p', { class: 'muted' }, 'Choose the language to list in the extension popup.')];
-  }
+  const nodes: Node[] = [header, setupSection(state, render, data, settings, listed, Boolean(state.report))];
+  const footer = await expansionFooter(state, render);
+  if (!data || !settings.language) return [...nodes, footer];
 
   const url = new URL(location.href);
   const page = readPage(document, url);
@@ -119,8 +120,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   const pendingCount = pending.reduce((n, c) => n + c.quantity, 0);
   const planCards = plan.rows.flatMap((r) => r.placements).reduce((n, p) => n + p.amount, 0);
 
-  const nodes: Node[] = [
-    header,
+  nodes.push(
     h(
       'p',
       {},
@@ -130,7 +130,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
         ? `${page.expansionName ?? `Expansion ${page.expansionId}`} · page ${page.site}`
         : 'Select an expansion and click "Filter".',
     ),
-  ];
+  );
 
   nodes.push(
     h(
@@ -154,7 +154,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   }
 
   nodes.push(...actionNodes(state, render, planCards));
-  nodes.push(navigation(pending, expansions, page.expansionId, page.nextPageUrl, url));
+  nodes.push(navigation(pending, expansions, page.expansionId, page.nextPageUrl, url), footer);
   return nodes;
 }
 

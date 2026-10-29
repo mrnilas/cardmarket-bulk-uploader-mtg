@@ -22,13 +22,14 @@ The extension does **not** use the Cardmarket API (it is closed for new applicat
 It fills Cardmarket's own listing form in your logged-in browser session. **It never
 submits** – you review the highlighted rows and click Cardmarket's list button yourself.
 
-1. **Popup:** import your ManaBox CSV, choose the language to list (one language per run)
-   and adjust the minimum prices.
-2. **Open Cardmarket listing:** opens *Stock → Listing methods → List by expansion* for the
-   first expansion with pending cards.
-3. **Panel on the page:** matches your cards to the table by English name and shows how
-   many of them are on this page. *Fill form* writes
-   them into the table; anything uncertain is listed for manual review.
+1. **Click the extension icon:** opens *Stock → Listing methods → List by expansion* on
+   Cardmarket (or switches to an open listing tab). Everything else happens in the panel
+   the extension adds to that page.
+2. **Import & settings** (in the panel): import your ManaBox CSV, choose the language to
+   list (one language per run) and adjust the minimum prices.
+3. **Fill:** the panel matches your cards to the table by English name and shows how many
+   of them are on this page. *Fill form* writes them into the table; anything uncertain
+   is listed for manual review.
 4. **Check and list** with Cardmarket's button. The panel marks those cards as listed and
    links to the next page or expansion.
 
@@ -55,8 +56,8 @@ Cardmarket. To test listing, load the build into your normal profile instead.
 
 Cardmarket identifies expansions by its own ids and splits sets into e.g. main set and
 "Extras". The extension maps ManaBox set codes to those ids using
-[MTGJSON](https://mtgjson.com)'s SetList, which the popup downloads on first use and
-refreshes weekly (or via *Update*).
+[MTGJSON](https://mtgjson.com)'s SetList, which the extension downloads on first use and
+refreshes weekly (or via *Update* in the panel).
 
 - `src/data/expansions.json` is a bundled fallback for the time before the first
   download. Refresh it now and then with `npm run gen:expansions`.

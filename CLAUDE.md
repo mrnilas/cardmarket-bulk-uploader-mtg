@@ -34,8 +34,9 @@ ManaBox CSV export in the user's Cardmarket store.
 - `src/lib/pricing.ts` – trend price with minimum per rarity
 - `src/lib/cardmarket/` – Cardmarket ids and the DOM adapter for the BulkListing page
 - `src/lib/store.ts` – extension storage (import, settings, progress)
-- `src/entrypoints/popup/` – import, settings
-- `src/entrypoints/bulk-listing.content/` – panel injected into the BulkListing page
+- `src/entrypoints/background.ts` – icon click opens the listing page; MTGJSON downloads
+- `src/entrypoints/bulk-listing.content/` – panel injected into the BulkListing page: import,
+  settings (`setup.ts`) and form filling (`panel.ts`) – there is no popup
 - `tests/fixtures/bulk-listing.html` – hand-written replica of the listing table
 - `docs/decisions.md` – decision log; append new decisions there
 - `docs/cardmarket-bulk-listing.md` – structure of Cardmarket's listing pages (form fields, IDs, limits)
