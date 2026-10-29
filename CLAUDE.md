@@ -29,8 +29,9 @@ ManaBox CSV export in the user's Cardmarket store.
 - `src/lib/model.ts` – internal `CardRow` model (source-agnostic)
 - `src/lib/csv/manabox.ts` – ManaBox CSV → `CardRow[]` + issues
 - `src/lib/expansions.ts` + `src/data/expansions*.json` – set code → Cardmarket `idExpansion`s
-- `src/lib/mtgjson.ts` – builds/downloads that table from MTGJSON's SetList (cached in `store.ts`)
-- `src/lib/planning.ts` – pure matching by English name: pending cards × page rows → fill plan + review list
+- `src/lib/mtgjson.ts` – MTGJSON downloads: expansion table (SetList) and per-set card ids
+  (collector number → `idProduct`); both cached in `store.ts`
+- `src/lib/planning.ts` – pure matching (`idProduct`, English name as fallback): pending cards × page rows → fill plan + review list
 - `src/lib/pricing.ts` – trend price with minimum per rarity
 - `src/lib/cardmarket/` – Cardmarket ids and the DOM adapter for the BulkListing page
 - `src/lib/store.ts` – extension storage (import, settings, progress)

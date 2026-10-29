@@ -6,15 +6,20 @@ import {
   type FillReport,
 } from '../../lib/cardmarket/bulk-listing';
 import { bulkListingUrl, type ExpansionIndex } from '../../lib/expansions';
+import { requestSetCards } from '../../lib/messages';
+import type { CardRow } from '../../lib/model';
 import { planPage, type PagePlan } from '../../lib/planning';
 import {
+  cardIdCache,
   currentImport,
   loadExpansionIndex,
   loadSettings,
   markListed,
   pendingCards,
   pendingExpansions,
+  productIdLookup,
   progress,
+  setsNeedingCardIds,
   watchStorage,
 } from '../../lib/store';
 import { formatNumber, h } from '../../lib/ui/dom';
@@ -30,11 +35,19 @@ type SubmitState =
   | { kind: 'confirmed'; cards: number }
   | { kind: 'unconfirmed'; sourceLines: number[] };
 
+interface CardIdState {
+  /** Progress while card ids are downloaded from MTGJSON. */
+  loading?: { done: number; total: number };
+  /** Set codes whose download failed in this tab (retried via the button). */
+  failed: Set<string>;
+}
+
 interface State extends SetupState {
   plan?: PagePlan;
   report?: FillReport;
   submit: SubmitState;
   collapsed: boolean;
+  cardIds: CardIdState;
 }
 
 /** Mounts the helper panel on the "List by expansion" page. Returns an unmount function. */
@@ -48,7 +61,13 @@ export function mountPanel(): () => void {
   shadow.append(style, root);
   document.body.append(host);
 
-  const state: State = { submit: { kind: 'idle' }, collapsed: false, issues: [], expansionUpdating: false };
+  const state: State = {
+    submit: { kind: 'idle' },
+    collapsed: false,
+    issues: [],
+    expansionUpdating: false,
+    cardIds: { failed: new Set() },
+  };
 
   const render = async () => {
     root.replaceChildren(...(await buildContent(state, render)));
@@ -107,12 +126,18 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   const url = new URL(location.href);
   const page = readPage(document, url);
   const pending = pendingCards(data.rows, settings.language, listed);
+  const cache = await cardIdCache.getValue();
+  const productIdFor = productIdLookup(cache);
+  const missingSets = setsNeedingCardIds(pending, cache).filter((code) => !state.cardIds.failed.has(code));
+  if (missingSets.length && !state.cardIds.loading && !state.report) void loadCardIds(state, render, missingSets);
+
   if (!state.report) {
     state.plan = planPage({
       pageRows: page.rows,
       cards: pending,
       expansionId: page.expansionId,
       expansions,
+      productIdFor,
       priceRules: settings.priceRules,
     });
   }
@@ -142,6 +167,8 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
     ),
   );
 
+  nodes.push(...cardIdNodes(state, render, pending, productIdFor));
+
   if (plan.review.length) {
     nodes.push(
       h(
@@ -158,6 +185,62 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   return nodes;
 }
 
+/** Downloads card ids set by set (via the background); the storage watch re-plans. */
+async function loadCardIds(state: State, render: () => Promise<void>, setCodes: readonly string[]): Promise<void> {
+  state.cardIds.loading = { done: 0, total: setCodes.length };
+  await render();
+  for (const code of setCodes) {
+    const result = await requestSetCards(code);
+    if (!result.ok) state.cardIds.failed.add(code);
+    state.cardIds.loading = { done: state.cardIds.loading.done + 1, total: setCodes.length };
+    if (!result.ok && !state.report) await render();
+  }
+  state.cardIds.loading = undefined;
+  if (!state.report) await render();
+}
+
+function cardIdNodes(
+  state: State,
+  render: () => Promise<void>,
+  pending: readonly CardRow[],
+  productIdFor: (card: CardRow) => number | undefined,
+): Node[] {
+  const { loading, failed } = state.cardIds;
+  if (loading) {
+    return [
+      h('p', { class: 'muted' }, `Loading card numbers from MTGJSON… ${loading.done} / ${loading.total} sets`),
+    ];
+  }
+  const nodes: Node[] = [];
+  const byName = pending.filter((card) => productIdFor(card) === undefined).reduce((n, c) => n + c.quantity, 0);
+  if (byName) {
+    nodes.push(
+      h(
+        'p',
+        { class: 'muted' },
+        `${formatNumber(byName)} cards without Cardmarket id in MTGJSON – matched by English name.`,
+      ),
+    );
+  }
+  if (failed.size) {
+    nodes.push(
+      h('p', { class: 'warn' }, `Card numbers could not be loaded for ${[...failed].join(', ')}.`),
+      h(
+        'button',
+        {
+          disabled: Boolean(state.report),
+          onclick: () => {
+            failed.clear();
+            void render();
+          },
+        },
+        'Retry',
+      ),
+    );
+  }
+  return nodes;
+}
+
 function actionNodes(state: State, render: () => Promise<void>, planCards: number): Node[] {
   const { report, submit, plan } = state;
 
@@ -167,7 +250,8 @@ function actionNodes(state: State, render: () => Promise<void>, planCards: numbe
         'button',
         {
           class: 'primary',
-          disabled: !plan?.rows.length,
+          // Wait for the card ids – otherwise variants would be matched by name.
+          disabled: !plan?.rows.length || Boolean(state.cardIds.loading),
           onclick: async () => {
             if (!state.plan) return;
             state.report = await applyPlan(document, state.plan.rows);

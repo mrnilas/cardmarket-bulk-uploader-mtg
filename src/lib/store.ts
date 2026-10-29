@@ -6,7 +6,13 @@ import {
   type ExpansionIndex,
 } from './expansions';
 import type { CardRow, Language } from './model';
-import { fetchExpansionTable, type FetchedExpansionTable } from './mtgjson';
+import {
+  fetchExpansionTable,
+  fetchSetCardIds,
+  normalizeCollectorNumber,
+  type FetchedExpansionTable,
+  type SetCardIds,
+} from './mtgjson';
 import { DEFAULT_PRICE_RULES, type PriceRules } from './pricing';
 
 export interface StoredImport {
@@ -42,6 +48,57 @@ export const expansionCache = storage.defineItem<FetchedExpansionTable | null>('
 
 /** Refresh the downloaded expansion table after a week (new sets appear every few weeks). */
 export const EXPANSION_TABLE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Card ids of one set from MTGJSON; `ids: null` = MTGJSON has no file for this set code. */
+export interface CachedSetCardIds {
+  fetchedAt: string;
+  ids: SetCardIds | null;
+}
+
+/** Set code (upper case) → card ids, only for sets that appeared in an import. */
+export const cardIdCache = storage.defineItem<Record<string, CachedSetCardIds>>('local:cardIdCache', {
+  fallback: {},
+});
+
+/** Retry sets in which some imported cards have no id yet (MTGJSON fills them in over time). */
+export const CARD_IDS_RETRY_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** `idProduct` of a card, or `undefined` if MTGJSON has none – then the name is used. */
+export type ProductIdLookup = (card: CardRow) => number | undefined;
+
+export function productIdLookup(cache: Readonly<Record<string, CachedSetCardIds>>): ProductIdLookup {
+  return (card) =>
+    cache[card.setCode.toUpperCase()]?.ids?.[normalizeCollectorNumber(card.collectorNumber)] ?? undefined;
+}
+
+/**
+ * Set codes of the import whose card ids must be (re)loaded: never loaded, or
+ * loaded more than a week ago while some imported cards were not found.
+ */
+export function setsNeedingCardIds(
+  rows: readonly CardRow[],
+  cache: Readonly<Record<string, CachedSetCardIds>>,
+  now = Date.now(),
+): string[] {
+  const lookup = productIdLookup(cache);
+  const needed = new Set<string>();
+  for (const row of rows) {
+    const code = row.setCode.toUpperCase();
+    const entry = cache[code];
+    if (!entry) needed.add(code);
+    else if (lookup(row) === undefined && now - Date.parse(entry.fetchedAt) >= CARD_IDS_RETRY_AFTER_MS) needed.add(code);
+  }
+  return [...needed].sort();
+}
+
+/** Downloads the card ids of one set and stores them. Returns the number of known cards. */
+export async function loadSetCardIds(setCode: string, doFetch?: typeof fetch): Promise<number> {
+  const code = setCode.toUpperCase();
+  const ids = await fetchSetCardIds(code, doFetch);
+  const cache = await cardIdCache.getValue();
+  await cardIdCache.setValue({ ...cache, [code]: { fetchedAt: new Date().toISOString(), ids } });
+  return ids ? Object.keys(ids).length : 0;
+}
 
 export interface ExpansionTableInfo {
   source: 'mtgjson' | 'bundled';
@@ -99,6 +156,7 @@ export function watchStorage(callback: () => void): () => void {
     settingsItem.watch(callback),
     progress.watch(callback),
     expansionCache.watch(callback),
+    cardIdCache.watch(callback),
   ];
   return () => unwatch.forEach((fn) => fn());
 }

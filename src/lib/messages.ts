@@ -4,26 +4,29 @@
  */
 import { browser } from 'wxt/browser';
 
-export interface RefreshExpansionsMessage {
-  type: 'refresh-expansions';
-  force: boolean;
-}
+export type BackgroundMessage =
+  | { type: 'refresh-expansions'; force: boolean }
+  /** Download the card ids (collector number → `idProduct`) of one set. */
+  | { type: 'load-set-cards'; setCode: string };
 
-export interface RefreshExpansionsResult {
+export interface BackgroundResult {
   ok: boolean;
-  /** True if a new table was downloaded. */
+  /** refresh-expansions: true if a new table was downloaded. */
   updated?: boolean;
+  /** load-set-cards: number of cards with a Cardmarket id. */
+  cards?: number;
   error?: string;
 }
 
-export function isRefreshExpansionsMessage(message: unknown): message is RefreshExpansionsMessage {
-  return (message as RefreshExpansionsMessage | null)?.type === 'refresh-expansions';
+const TYPES: ReadonlySet<string> = new Set<BackgroundMessage['type']>(['refresh-expansions', 'load-set-cards']);
+
+export function isBackgroundMessage(message: unknown): message is BackgroundMessage {
+  return TYPES.has((message as { type?: string } | null)?.type ?? '');
 }
 
-export async function requestExpansionRefresh(force: boolean): Promise<RefreshExpansionsResult> {
-  const message: RefreshExpansionsMessage = { type: 'refresh-expansions', force };
+export async function sendToBackground(message: BackgroundMessage): Promise<BackgroundResult> {
   try {
-    return ((await browser.runtime.sendMessage(message)) as RefreshExpansionsResult | undefined) ?? {
+    return ((await browser.runtime.sendMessage(message)) as BackgroundResult | undefined) ?? {
       ok: false,
       error: 'No response from the extension',
     };
@@ -31,3 +34,6 @@ export async function requestExpansionRefresh(force: boolean): Promise<RefreshEx
     return { ok: false, error: (error as Error).message };
   }
 }
+
+export const requestExpansionRefresh = (force: boolean) => sendToBackground({ type: 'refresh-expansions', force });
+export const requestSetCards = (setCode: string) => sendToBackground({ type: 'load-set-cards', setCode });

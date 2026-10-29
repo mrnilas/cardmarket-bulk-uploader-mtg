@@ -2,13 +2,18 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { createExpansionIndex } from '../src/lib/expansions';
 import {
+  CARD_IDS_RETRY_AFTER_MS,
+  cardIdCache,
   EXPANSION_TABLE_MAX_AGE_MS,
   expansionCache,
   expansionTableInfo,
   loadExpansionIndex,
   pendingCards,
+  loadSetCardIds,
   pendingExpansions,
+  productIdLookup,
   refreshExpansionTable,
+  setsNeedingCardIds,
 } from '../src/lib/store';
 import { card } from './helpers';
 
@@ -82,5 +87,44 @@ describe('expansion table', () => {
     await refreshExpansionTable({ fetch: setList([dft]) });
     await expect(refreshExpansionTable({ force: true, fetch: setList([]) })).rejects.toThrow();
     expect((await loadExpansionIndex()).idsForSet('DFT')).toEqual([5982, 6011]);
+  });
+});
+
+describe('card ids', () => {
+  beforeEach(() => fakeBrowser.reset());
+
+  const fetchedAt = '2026-10-01T00:00:00.000Z';
+  const cache = {
+    DFT: { fetchedAt, ids: { '4': 808219, '30': null } },
+    TDFT: { fetchedAt, ids: null },
+  };
+
+  it('looks up ids by set code and collector number', () => {
+    const lookup = productIdLookup(cache);
+    expect(lookup(card({ setCode: 'dft', collectorNumber: ' 4 ' }))).toBe(808219);
+    expect(lookup(card({ setCode: 'DFT', collectorNumber: '30' }))).toBeUndefined();
+    expect(lookup(card({ setCode: 'TDFT', collectorNumber: '1' }))).toBeUndefined();
+    expect(lookup(card({ setCode: 'BLB', collectorNumber: '1' }))).toBeUndefined();
+  });
+
+  it('loads new sets, and retries sets with unknown cards after a week', () => {
+    const rows = [
+      card({ setCode: 'DFT', collectorNumber: '4' }),
+      card({ setCode: 'TDFT', collectorNumber: '1' }),
+      card({ setCode: 'blb', collectorNumber: '1' }),
+    ];
+    const soon = Date.parse(fetchedAt) + CARD_IDS_RETRY_AFTER_MS - 1;
+    expect(setsNeedingCardIds(rows, cache, soon)).toEqual(['BLB']);
+    expect(setsNeedingCardIds(rows, cache, soon + 1)).toEqual(['BLB', 'TDFT']);
+  });
+
+  it('stores downloaded sets', async () => {
+    const body = { data: { cards: [{ number: '4', identifiers: { mcmId: '808219' } }] } };
+    expect(await loadSetCardIds('dft', async () => new Response(JSON.stringify(body)))).toBe(1);
+    expect(await loadSetCardIds('XYZ', async () => new Response('', { status: 404 }))).toBe(0);
+    expect(await cardIdCache.getValue()).toEqual({
+      DFT: { fetchedAt: expect.any(String), ids: { '4': 808219 } },
+      XYZ: { fetchedAt: expect.any(String), ids: null },
+    });
   });
 });

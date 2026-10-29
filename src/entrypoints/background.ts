@@ -2,10 +2,11 @@ import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { BULK_LISTING_MATCHES } from '../lib/cardmarket/bulk-listing';
 import { bulkListingUrl, CARDMARKET_LOCALES } from '../lib/expansions';
-import { isRefreshExpansionsMessage, type RefreshExpansionsResult } from '../lib/messages';
+import { isBackgroundMessage, type BackgroundMessage, type BackgroundResult } from '../lib/messages';
 import {
   currentImport,
   loadExpansionIndex,
+  loadSetCardIds,
   loadSettings,
   pendingCards,
   pendingExpansions,
@@ -20,10 +21,9 @@ export default defineBackground(() => {
   browser.runtime.onStartup.addListener(() => void refresh());
 
   browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
-    if (!isRefreshExpansionsMessage(message)) return;
-    refreshExpansionTable({ force: message.force }).then(
-      (updated) => sendResponse({ ok: true, updated } satisfies RefreshExpansionsResult),
-      (error: Error) => sendResponse({ ok: false, error: error.message } satisfies RefreshExpansionsResult),
+    if (!isBackgroundMessage(message)) return;
+    handle(message).then(sendResponse, (error: Error) =>
+      sendResponse({ ok: false, error: error.message } satisfies BackgroundResult),
     );
     return true; // response is sent asynchronously
   });
@@ -31,6 +31,15 @@ export default defineBackground(() => {
   // MV3 has `action`, Firefox MV2 `browserAction`.
   (browser.action ?? browser.browserAction).onClicked.addListener(() => void openListing());
 });
+
+async function handle(message: BackgroundMessage): Promise<BackgroundResult> {
+  switch (message.type) {
+    case 'refresh-expansions':
+      return { ok: true, updated: await refreshExpansionTable({ force: message.force }) };
+    case 'load-set-cards':
+      return { ok: true, cards: await loadSetCardIds(message.setCode) };
+  }
+}
 
 /** Focuses an open listing tab, or opens the first expansion with pending cards. */
 async function openListing(): Promise<void> {

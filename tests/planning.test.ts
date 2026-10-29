@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createExpansionIndex } from '../src/lib/expansions';
 import { planPage, type PageRow } from '../src/lib/planning';
+import type { CardRow } from '../src/lib/model';
 import { card } from './helpers';
 
 const expansions = createExpansionIndex({ DFT: { name: 'Aetherdrift', ids: [5982, 6011] } });
@@ -13,8 +14,12 @@ const pageRows: PageRow[] = [
   { index: 4, productId: 900003, englishName: 'English Only', languageIds: [1], trendPrice: 3 },
 ];
 
-const plan = (cards: ReturnType<typeof card>[], expansionId: number | null = 5982) =>
-  planPage({ pageRows, cards, expansionId, expansions });
+/** Pretends MTGJSON knows these collector numbers of DFT. */
+const productIds: Record<string, number> = { '4': 808219, '400': 900002, '500': 900003 };
+const productIdFor = (c: CardRow) => (c.setCode === 'DFT' ? productIds[c.collectorNumber] : undefined);
+
+const plan = (cards: ReturnType<typeof card>[], expansionId: number | null = 5982, rows = pageRows) =>
+  planPage({ pageRows: rows, cards, expansionId, expansions, productIdFor });
 
 /** A card of the mapped set DFT. */
 const dft = (overrides: Parameters<typeof card>[0] = {}) =>
@@ -42,6 +47,22 @@ describe('planPage', () => {
       },
     ]);
     expect(result.rows[1]!.placements[0]!.price).toBe(0.5);
+  });
+
+  it('matches by Cardmarket id before the name, on any page', () => {
+    // #400 is the second "Twin Name" – no ambiguity with an id.
+    const twin = dft({ name: 'Twin Name', collectorNumber: '400' });
+    expect(plan([twin]).rows.map((r) => r.row.productId)).toEqual([900002]);
+    expect(plan([twin], 1234).matched).toBe(1);
+  });
+
+  it('does not fall back to the name when the id is not on this page', () => {
+    // MTGJSON says #500 is product 900003 – the "Brightfield Glider" row is a different variant.
+    const variant = dft({ collectorNumber: '500', language: 'en' });
+    expect(plan([variant]).rows.map((r) => r.row.productId)).toEqual([900003]);
+    expect(plan([variant], 5982, pageRows.slice(0, 2)).matched).toBe(0);
+    // Unknown number → name fallback.
+    expect(plan([dft({ collectorNumber: '501' })]).rows.map((r) => r.row.productId)).toEqual([808219]);
   });
 
   it('normalises case and whitespace in names', () => {
