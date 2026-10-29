@@ -1,6 +1,12 @@
 import { storage } from 'wxt/utils/storage';
-import { expansionIndex, type ExpansionIndex } from './expansions';
+import {
+  bundledExpansionTable,
+  bundledExpansionTableDate,
+  indexWithOverrides,
+  type ExpansionIndex,
+} from './expansions';
 import type { CardRow, Language } from './model';
+import { fetchExpansionTable, type FetchedExpansionTable } from './mtgjson';
 import { DEFAULT_PRICE_RULES, type PriceRules } from './pricing';
 
 export interface StoredImport {
@@ -29,6 +35,48 @@ const settingsItem = storage.defineItem<Partial<Settings>>('local:settings', { f
 
 export const progress = storage.defineItem<Progress>('local:progress', { fallback: { listed: [] } });
 
+/** Expansion table downloaded from MTGJSON (replaces the bundled snapshot). */
+export const expansionCache = storage.defineItem<FetchedExpansionTable | null>('local:expansionCache', {
+  fallback: null,
+});
+
+/** Refresh the downloaded expansion table after a week (new sets appear every few weeks). */
+export const EXPANSION_TABLE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+export interface ExpansionTableInfo {
+  source: 'mtgjson' | 'bundled';
+  sets: number;
+  /** ISO date of the download or of the bundled snapshot. */
+  updatedAt: string | null;
+}
+
+/** Downloaded table if available, else the bundled one – always with overrides. */
+export async function loadExpansionIndex(): Promise<ExpansionIndex> {
+  const cache = await expansionCache.getValue();
+  return indexWithOverrides(cache?.table ?? bundledExpansionTable);
+}
+
+export async function expansionTableInfo(): Promise<ExpansionTableInfo> {
+  const cache = await expansionCache.getValue();
+  return cache
+    ? { source: 'mtgjson', sets: Object.keys(cache.table).length, updatedAt: cache.fetchedAt }
+    : { source: 'bundled', sets: Object.keys(bundledExpansionTable).length, updatedAt: bundledExpansionTableDate };
+}
+
+/**
+ * Downloads the table from MTGJSON if there is none yet or it is older than
+ * the max age (`force` skips that check). On failure the current table stays.
+ */
+export async function refreshExpansionTable(
+  options: { force?: boolean; now?: number; fetch?: typeof fetch } = {},
+): Promise<boolean> {
+  const cache = await expansionCache.getValue();
+  const age = cache ? (options.now ?? Date.now()) - Date.parse(cache.fetchedAt) : Infinity;
+  if (!options.force && age < EXPANSION_TABLE_MAX_AGE_MS) return false;
+  await expansionCache.setValue(await fetchExpansionTable(options.fetch));
+  return true;
+}
+
 export async function loadSettings(): Promise<Settings> {
   const stored = await settingsItem.getValue();
   return {
@@ -46,7 +94,12 @@ export async function saveSettings(patch: Partial<Settings>): Promise<Settings> 
 }
 
 export function watchStorage(callback: () => void): () => void {
-  const unwatch = [currentImport.watch(callback), settingsItem.watch(callback), progress.watch(callback)];
+  const unwatch = [
+    currentImport.watch(callback),
+    settingsItem.watch(callback),
+    progress.watch(callback),
+    expansionCache.watch(callback),
+  ];
   return () => unwatch.forEach((fn) => fn());
 }
 
@@ -73,7 +126,7 @@ export interface PendingExpansion {
  */
 export function pendingExpansions(
   cards: readonly CardRow[],
-  index: ExpansionIndex = expansionIndex,
+  index: ExpansionIndex,
 ): { expansions: PendingExpansion[]; unmapped: number } {
   const counts = new Map<number, number>();
   let unmapped = 0;

@@ -1,14 +1,17 @@
 import { browser } from 'wxt/browser';
 import { parseManaBoxCsv } from '../../lib/csv/manabox';
-import { bulkListingUrl, CARDMARKET_LOCALES, expansionIndex } from '../../lib/expansions';
+import { bulkListingUrl, CARDMARKET_LOCALES } from '../../lib/expansions';
 import { summarize } from '../../lib/grouping';
 import type { Language, ParseIssue, Rarity } from '../../lib/model';
 import {
   currentImport,
+  expansionTableInfo,
+  loadExpansionIndex,
   loadSettings,
   pendingCards,
   pendingExpansions,
   progress,
+  refreshExpansionTable,
   saveSettings,
   type StoredImport,
 } from '../../lib/store';
@@ -23,6 +26,8 @@ const fileInput = $<HTMLInputElement>('file');
 const status = $('status');
 const importSection = $('import');
 const languageSelect = $<HTMLSelectElement>('language');
+const expansionStatus = $('expansion-status');
+const expansionRefresh = $<HTMLButtonElement>('expansion-refresh');
 
 // ---------------------------------------------------------------- import
 
@@ -86,13 +91,49 @@ for (const rarity of PRICE_FIELDS) {
   });
 }
 
+// ---------------------------------------------------------------- expansion table
+
+expansionRefresh.addEventListener('click', () => void updateExpansions(true));
+
+/** Downloads the expansion table from MTGJSON when it is missing or stale (or `force`). */
+async function updateExpansions(force: boolean): Promise<void> {
+  expansionRefresh.disabled = true;
+  if (force) expansionStatus.textContent = 'Updating expansions…';
+  try {
+    await refreshExpansionTable({ force });
+    await renderExpansions();
+  } catch (error) {
+    await renderExpansions();
+    expansionStatus.textContent += ` – update failed: ${(error as Error).message}`;
+    expansionStatus.className = 'warning';
+  } finally {
+    expansionRefresh.disabled = false;
+  }
+}
+
+async function renderExpansions(): Promise<void> {
+  const info = await expansionTableInfo();
+  const date = info.updatedAt ? new Date(info.updatedAt).toLocaleDateString() : null;
+  if (info.sets === 0) {
+    expansionStatus.textContent = 'No expansion table yet – cards cannot be matched.';
+    expansionStatus.className = 'warning';
+    return;
+  }
+  expansionStatus.textContent =
+    info.source === 'mtgjson'
+      ? `Expansions: ${formatNumber(info.sets)} sets, updated ${date}`
+      : `Expansions: ${formatNumber(info.sets)} sets (bundled${date ? `, ${date}` : ''})`;
+  expansionStatus.className = 'muted';
+}
+
 // ---------------------------------------------------------------- open Cardmarket
 
 $('open').addEventListener('click', async () => {
   const data = await currentImport.getValue();
   const { language } = await loadSettings();
   const { listed } = await progress.getValue();
-  const first = pendingExpansions(pendingCards(data?.rows ?? [], language, listed)).expansions[0];
+  const pending = pendingCards(data?.rows ?? [], language, listed);
+  const first = pendingExpansions(pending, await loadExpansionIndex()).expansions[0];
   const uiLocale = navigator.language.slice(0, 2);
   const locale = (CARDMARKET_LOCALES as readonly string[]).includes(uiLocale) ? uiLocale : 'en';
   const url = first
@@ -145,7 +186,6 @@ async function render(): Promise<void> {
     $<HTMLInputElement>(`min-${rarity}`).value = settings.priceRules.minPrice[rarity].toFixed(2);
   }
 
-  $('table-warning').hidden = expansionIndex.size > 0;
   $<HTMLButtonElement>('open').disabled = !settings.language;
 }
 
@@ -179,3 +219,4 @@ function formatCounts(counts: Record<string, number | undefined>): string {
 }
 
 void render();
+void renderExpansions().then(() => updateExpansions(false));

@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { createExpansionIndex } from '../src/lib/expansions';
-import { pendingCards, pendingExpansions } from '../src/lib/store';
+import {
+  EXPANSION_TABLE_MAX_AGE_MS,
+  expansionCache,
+  expansionTableInfo,
+  loadExpansionIndex,
+  pendingCards,
+  pendingExpansions,
+  refreshExpansionTable,
+} from '../src/lib/store';
 import { card } from './helpers';
 
 describe('pendingCards', () => {
@@ -39,5 +48,39 @@ describe('pendingExpansions', () => {
       ],
       unmapped: 3,
     });
+  });
+});
+
+describe('expansion table', () => {
+  beforeEach(() => fakeBrowser.reset());
+
+  const setList = (sets: object[]) => async () => new Response(JSON.stringify({ data: sets }));
+  const dft = { code: 'DFT', name: 'Aetherdrift', mcmId: 5982, mcmIdExtras: 6011 };
+
+  it('downloads the table when there is none and uses it from then on', async () => {
+    expect((await expansionTableInfo()).source).toBe('bundled');
+    expect(await refreshExpansionTable({ fetch: setList([dft]) })).toBe(true);
+
+    expect(await expansionTableInfo()).toMatchObject({ source: 'mtgjson', sets: 1 });
+    expect((await loadExpansionIndex()).idsForSet('DFT')).toEqual([5982, 6011]);
+  });
+
+  it('skips the download while the table is fresh, unless forced', async () => {
+    const fetchedAt = '2026-10-01T00:00:00.000Z';
+    await expansionCache.setValue({ table: {}, mtgjsonVersion: null, fetchedAt });
+    const now = Date.parse(fetchedAt) + EXPANSION_TABLE_MAX_AGE_MS - 1;
+    const fail = async () => {
+      throw new Error('should not fetch');
+    };
+
+    expect(await refreshExpansionTable({ now, fetch: fail })).toBe(false);
+    expect(await refreshExpansionTable({ now: now + 1, fetch: setList([dft]) })).toBe(true);
+    expect(await refreshExpansionTable({ force: true, fetch: setList([dft]) })).toBe(true);
+  });
+
+  it('keeps the current table when the download fails', async () => {
+    await refreshExpansionTable({ fetch: setList([dft]) });
+    await expect(refreshExpansionTable({ force: true, fetch: setList([]) })).rejects.toThrow();
+    expect((await loadExpansionIndex()).idsForSet('DFT')).toEqual([5982, 6011]);
   });
 });

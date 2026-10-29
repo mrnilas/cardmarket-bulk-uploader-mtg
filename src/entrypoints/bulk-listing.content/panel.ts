@@ -5,10 +5,11 @@ import {
   SUBMIT_BUTTON_SELECTOR,
   type FillReport,
 } from '../../lib/cardmarket/bulk-listing';
-import { bulkListingUrl, expansionIndex } from '../../lib/expansions';
+import { bulkListingUrl, type ExpansionIndex } from '../../lib/expansions';
 import { planPage, type PagePlan } from '../../lib/planning';
 import {
   currentImport,
+  loadExpansionIndex,
   loadSettings,
   markListed,
   pendingCards,
@@ -95,6 +96,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   const data = await currentImport.getValue();
   const settings = await loadSettings();
   const { listed } = await progress.getValue();
+  const expansions = await loadExpansionIndex();
 
   if (!data) return [header, h('p', { class: 'muted' }, 'No CSV imported. Open the extension popup to import one.')];
   if (!settings.language) {
@@ -109,7 +111,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
       pageRows: page.rows,
       cards: pending,
       expansionId: page.expansionId,
-      expansions: expansionIndex,
+      expansions,
       priceRules: settings.priceRules,
     });
   }
@@ -152,7 +154,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   }
 
   nodes.push(...actionNodes(state, render, planCards));
-  nodes.push(navigation(pending, page.expansionId, page.nextPageUrl, url));
+  nodes.push(navigation(pending, expansions, page.expansionId, page.nextPageUrl, url));
   return nodes;
 }
 
@@ -243,13 +245,14 @@ function actionNodes(state: State, render: () => Promise<void>, planCards: numbe
 
 function navigation(
   pending: ReturnType<typeof pendingCards>,
+  index: ExpansionIndex,
   currentExpansion: number | null,
   nextPageUrl: string | null,
   url: URL,
 ): Node {
   const locale = url.pathname.split('/')[1] || 'en';
   const names = expansionNames();
-  const { expansions, unmapped } = pendingExpansions(pending);
+  const { expansions, unmapped } = pendingExpansions(pending, index);
   const position = expansions.findIndex((e) => e.idExpansion === currentExpansion);
   const nextExpansion = expansions[position + 1] ?? (position === -1 ? expansions[0] : undefined);
   const label = (id: number) => names.get(id) ?? `Expansion ${id}`;

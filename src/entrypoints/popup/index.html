@@ -47,17 +47,17 @@
           <label>Mythic <input id="min-mythic" type="number" min="0.02" step="0.01" /></label>
         </div>
 
-        <p id="table-warning" class="warning" hidden>
-          The expansion table is empty. Run <code>npm run gen:expansions</code> and rebuild – until then
-          no cards can be matched, and the panel cannot suggest expansions.
-        </p>
-
         <button id="open" type="button" class="primary">Open Cardmarket listing</button>
         <div class="actions">
           <button id="reset-progress" type="button">Reset progress</button>
           <button id="clear" type="button">Clear import</button>
         </div>
       </section>
+
+      <footer class="expansions">
+        <span id="expansion-status" class="muted"></span>
+        <button id="expansion-refresh" type="button">Update</button>
+      </footer>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>

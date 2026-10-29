@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error – plain JS build script without type declarations
-import { buildExpansionTable } from '../scripts/generate-expansions.mjs';
 import { bulkListingUrl, createExpansionIndex } from '../src/lib/expansions';
+import { buildExpansionTable, fetchExpansionTable, SET_LIST_URL } from '../src/lib/mtgjson';
 
 describe('buildExpansionTable', () => {
   it('maps set codes to main and extras expansion ids, skipping online-only sets', () => {
@@ -17,6 +16,26 @@ describe('buildExpansionTable', () => {
       PDFT: { name: 'Aetherdrift Promos', ids: [5991] },
       SAME: { name: 'Same', ids: [7] },
     });
+  });
+});
+
+describe('fetchExpansionTable', () => {
+  const respond = (body: unknown, status = 200) => async () => new Response(JSON.stringify(body), { status });
+
+  it('downloads the SetList and keeps the MTGJSON version', async () => {
+    let url = '';
+    const result = await fetchExpansionTable(async (input) => {
+      url = String(input);
+      return respond({ meta: { version: '5.2.2' }, data: [{ code: 'dft', name: 'Aetherdrift', mcmId: 5982 }] })();
+    });
+    expect(url).toBe(SET_LIST_URL);
+    expect(result.table).toEqual({ DFT: { name: 'Aetherdrift', ids: [5982] } });
+    expect(result.mtgjsonVersion).toBe('5.2.2');
+  });
+
+  it('rejects HTTP errors and responses without Cardmarket sets', async () => {
+    await expect(fetchExpansionTable(respond({}, 503))).rejects.toThrow('HTTP 503');
+    await expect(fetchExpansionTable(respond({ data: [{ code: 'X', name: 'X' }] }))).rejects.toThrow('no Cardmarket sets');
   });
 });
 

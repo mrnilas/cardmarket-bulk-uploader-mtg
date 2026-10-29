@@ -38,7 +38,6 @@ Requires Node.js ≥ 22.
 
 ```bash
 npm install
-npm run gen:expansions # download the expansion table from MTGJSON (once, and for new sets)
 npm run dev            # Chrome with hot reload
 npm run dev:firefox    # Firefox with hot reload
 npm run check          # type check + lint + tests
@@ -55,9 +54,15 @@ Cardmarket. To test listing, load the build into your normal profile instead.
 ### Expansion table
 
 Cardmarket identifies expansions by its own ids and splits sets into e.g. main set and
-"Extras". `src/data/expansions.json` maps ManaBox set codes to those ids and is
-generated from [MTGJSON](https://mtgjson.com)'s SetList. Corrections go to
-`src/data/expansions.overrides.json`, which the generator never touches.
+"Extras". The extension maps ManaBox set codes to those ids using
+[MTGJSON](https://mtgjson.com)'s SetList, which the popup downloads on first use and
+refreshes weekly (or via *Update*).
+
+- `src/data/expansions.json` is a bundled fallback for the time before the first
+  download. Refresh it now and then with `npm run gen:expansions`.
+- Corrections go to `src/data/expansions.overrides.json`; they always win and are
+  never touched by the generator. MTGJSON has no Cardmarket ids for most promo and
+  token sets and for Secret Lair – add those here if you need them.
 
 ## Export from ManaBox
 

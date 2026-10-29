@@ -22,12 +22,14 @@ ManaBox CSV export in the user's Cardmarket store.
 - `npm run dev` / `npm run dev:firefox` – dev build with hot reload
 - `npm run build` / `npm run build:firefox`
 - `npm run check` – type check + lint + tests (run before every commit)
-- `npm run gen:expansions` – regenerate `src/data/expansions.json` from MTGJSON (needs internet)
+- `npm run gen:expansions` – refresh the bundled fallback `src/data/expansions.json` from MTGJSON
+  (the extension downloads the current table itself at runtime)
 
 ## Layout
 - `src/lib/model.ts` – internal `CardRow` model (source-agnostic)
 - `src/lib/csv/manabox.ts` – ManaBox CSV → `CardRow[]` + issues
 - `src/lib/expansions.ts` + `src/data/expansions*.json` – set code → Cardmarket `idExpansion`s
+- `src/lib/mtgjson.ts` – builds/downloads that table from MTGJSON's SetList (cached in `store.ts`)
 - `src/lib/planning.ts` – pure matching by English name: pending cards × page rows → fill plan + review list
 - `src/lib/pricing.ts` – trend price with minimum per rarity
 - `src/lib/cardmarket/` – Cardmarket ids and the DOM adapter for the BulkListing page

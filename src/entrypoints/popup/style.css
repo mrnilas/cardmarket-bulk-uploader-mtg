@@ -144,6 +144,17 @@ button:disabled {
   gap: 8px;
 }
 
-code {
+.expansions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.expansions button {
+  padding: 3px 8px;
   font-size: 12px;
 }

@@ -29,13 +29,14 @@ export function createExpansionIndex(table: ExpansionTable): ExpansionIndex {
   };
 }
 
-/** Generated table plus manual overrides (overrides win). */
-export const expansionIndex: ExpansionIndex = createExpansionIndex({
-  ...(generated.sets as ExpansionTable),
-  ...(overrides.sets as ExpansionTable),
-});
+/** Snapshot shipped with the extension, used until a download from MTGJSON succeeds. */
+export const bundledExpansionTable = generated.sets as ExpansionTable;
+export const bundledExpansionTableDate: string | null = generated.generatedAt;
 
-export const expansionTableGeneratedAt: string | null = generated.generatedAt;
+/** Builds the index from a table plus the manual overrides (overrides win). */
+export function indexWithOverrides(table: ExpansionTable): ExpansionIndex {
+  return createExpansionIndex({ ...table, ...(overrides.sets as ExpansionTable) });
+}
 
 /** Cardmarket UI locales; the extension keeps whatever locale the user is on. */
 export const CARDMARKET_LOCALES = ['de', 'en', 'fr', 'es', 'it'] as const;
