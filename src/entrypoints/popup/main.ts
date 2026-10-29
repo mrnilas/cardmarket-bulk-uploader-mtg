@@ -3,7 +3,6 @@ import { parseManaBoxCsv } from '../../lib/csv/manabox';
 import { bulkListingUrl, CARDMARKET_LOCALES, expansionIndex } from '../../lib/expansions';
 import { summarize } from '../../lib/grouping';
 import type { Language, ParseIssue, Rarity } from '../../lib/model';
-import { fetchCardmarketIds } from '../../lib/scryfall';
 import {
   currentImport,
   loadSettings,
@@ -24,10 +23,6 @@ const fileInput = $<HTMLInputElement>('file');
 const status = $('status');
 const importSection = $('import');
 const languageSelect = $<HTMLSelectElement>('language');
-const resolveButton = $<HTMLButtonElement>('resolve');
-const resolveStatus = $('resolve-status');
-
-let resolving = false;
 
 // ---------------------------------------------------------------- import
 
@@ -56,7 +51,6 @@ fileInput.addEventListener('change', async () => {
   });
 
   await render();
-  void resolveIds();
 });
 
 $('clear').addEventListener('click', async () => {
@@ -90,40 +84,6 @@ for (const rarity of PRICE_FIELDS) {
     if (rarity === 'rare') Object.assign(minPrice, { special: value, bonus: value });
     await saveSettings({ priceRules: { minPrice } });
   });
-}
-
-// ---------------------------------------------------------------- Scryfall
-
-resolveButton.addEventListener('click', () => void resolveIds());
-
-async function resolveIds(): Promise<void> {
-  const data = await currentImport.getValue();
-  if (!data || resolving) return;
-  const ids = data.rows.filter((r) => r.cardmarketId === undefined).map((r) => r.scryfallId);
-  if (ids.length === 0) return;
-
-  resolving = true;
-  await render();
-  try {
-    await fetchCardmarketIds(ids, {
-      onBatch: async (resolved, done, total) => {
-        const current = await currentImport.getValue();
-        if (!current || current.importedAt !== data.importedAt) throw new Error('Import changed');
-        current.rows = current.rows.map((row) =>
-          resolved.has(row.scryfallId) ? { ...row, cardmarketId: resolved.get(row.scryfallId) } : row,
-        );
-        await currentImport.setValue(current);
-        resolveStatus.textContent = `Matching with Scryfall… ${done} / ${total}`;
-      },
-    });
-  } catch (error) {
-    resolveStatus.textContent = `Scryfall: ${(error as Error).message}. Try again later.`;
-    resolveStatus.className = 'error';
-    resolving = false;
-    return;
-  }
-  resolving = false;
-  await render();
 }
 
 // ---------------------------------------------------------------- open Cardmarket
@@ -164,18 +124,6 @@ async function render(): Promise<void> {
   $('s-sets').textContent = formatNumber(s.sets);
   $('s-finish').textContent = formatCounts(s.byFinish);
   $('s-lang').textContent = formatCounts(s.byLanguage);
-
-  // Scryfall
-  const unresolved = data.rows.filter((r) => r.cardmarketId === undefined).length;
-  const missing = data.rows.filter((r) => r.cardmarketId === null).length;
-  if (!resolving) {
-    resolveStatus.className = unresolved ? 'warning' : 'ok';
-    resolveStatus.textContent = unresolved
-      ? `${formatNumber(unresolved)} of ${formatNumber(s.rows)} rows not matched yet.`
-      : `All rows matched${missing ? ` – ${formatNumber(missing)} without Cardmarket id (name fallback)` : ''}.`;
-  }
-  resolveButton.hidden = unresolved === 0;
-  resolveButton.disabled = resolving;
 
   // Language
   languageSelect.replaceChildren(
@@ -230,4 +178,4 @@ function formatCounts(counts: Record<string, number | undefined>): string {
     .join(' · ');
 }
 
-void render().then(() => resolveIds());
+void render();

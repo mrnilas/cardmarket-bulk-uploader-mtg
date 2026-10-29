@@ -11,7 +11,7 @@ export const CONDITION_IDS: Record<Condition, number> = {
   PO: 7,
 };
 
-/** Cardmarket `idLanguage` values for the languages ManaBox/Scryfall use. */
+/** Cardmarket `idLanguage` values for the languages ManaBox uses. */
 export const LANGUAGE_IDS: Record<Language, number> = {
   en: 1,
   fr: 2,

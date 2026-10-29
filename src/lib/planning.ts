@@ -59,18 +59,15 @@ export interface PlanInput {
 }
 
 /**
- * Matches pending cards to the rows of the current page.
- *
- * 1. Cards with a Cardmarket id match the row with that `idProduct` (any page).
- * 2. Cards without one fall back to the English name, but only on pages of an
- *    expansion their set maps to, and only if the name is unique on the page.
- * Anything uncertain goes to the review list – nothing is guessed.
+ * Matches pending cards to the rows of the current page by English name –
+ * only on pages of an expansion the card's set maps to, and only if the name
+ * is unique on the page. Anything uncertain goes to the review list –
+ * nothing is guessed.
  */
 export function planPage(input: PlanInput): PagePlan {
   const { pageRows, cards, expansionId, expansions } = input;
   const priceRules = input.priceRules ?? DEFAULT_PRICE_RULES;
 
-  const byProduct = new Map(pageRows.map((row) => [row.productId, row]));
   const byName = new Map<string, PageRow[]>();
   for (const row of pageRows) {
     const key = normalizeName(row.englishName);
@@ -83,21 +80,17 @@ export function planPage(input: PlanInput): PagePlan {
   let matched = 0;
 
   for (const card of cards) {
-    let row: PageRow | undefined;
-    if (typeof card.cardmarketId === 'number') {
-      row = byProduct.get(card.cardmarketId);
-    } else if (expansionId !== null && expansions.setIncludes(card.setCode, expansionId)) {
-      const candidates = byName.get(normalizeName(card.name)) ?? [];
-      if (candidates.length > 1) {
-        review.push({
-          card,
-          reason: 'ambiguous-name',
-          detail: `${candidates.length} products named "${card.name}" on this page`,
-        });
-        continue;
-      }
-      row = candidates[0];
+    if (expansionId === null || !expansions.setIncludes(card.setCode, expansionId)) continue;
+    const candidates = byName.get(normalizeName(card.name)) ?? [];
+    if (candidates.length > 1) {
+      review.push({
+        card,
+        reason: 'ambiguous-name',
+        detail: `${candidates.length} products named "${card.name}" on this page`,
+      });
+      continue;
     }
+    const row = candidates[0];
     if (!row) continue;
 
     if (card.altered) {

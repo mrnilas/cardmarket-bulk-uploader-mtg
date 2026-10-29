@@ -13,7 +13,7 @@ export type Rarity = (typeof RARITIES)[number];
 export const CONDITIONS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
-/** Card languages as used by Scryfall/ManaBox. */
+/** Card languages as used by ManaBox. */
 export const LANGUAGES = ['en', 'de', 'fr', 'it', 'es', 'pt', 'ja', 'ko', 'ru', 'zhs', 'zht'] as const;
 export type Language = (typeof LANGUAGES)[number];
 
@@ -30,12 +30,6 @@ export interface CardRow {
   misprint: boolean;
   altered: boolean;
   signed: boolean;
-  scryfallId: string;
-  /**
-   * Cardmarket product id (`idProduct`), resolved via Scryfall.
-   * `undefined` = not resolved yet, `null` = Scryfall knows no Cardmarket id.
-   */
-  cardmarketId?: number | null;
   /** Buying price from the source app – NOT a selling price. */
   purchasePrice?: number;
   purchaseCurrency?: string;

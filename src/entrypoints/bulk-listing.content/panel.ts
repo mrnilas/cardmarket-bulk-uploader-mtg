@@ -115,7 +115,6 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   }
   const plan = state.plan!;
   const pendingCount = pending.reduce((n, c) => n + c.quantity, 0);
-  const unresolved = pending.filter((c) => c.cardmarketId === undefined).length;
   const planCards = plan.rows.flatMap((r) => r.placements).reduce((n, p) => n + p.amount, 0);
 
   const nodes: Node[] = [
@@ -130,12 +129,6 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
         : 'Select an expansion and click "Filter".',
     ),
   ];
-
-  if (unresolved > 0) {
-    nodes.push(
-      h('p', { class: 'warn' }, `${formatNumber(unresolved)} rows not matched with Scryfall yet – open the popup.`),
-    );
-  }
 
   nodes.push(
     h(

@@ -27,13 +27,12 @@ ManaBox CSV export in the user's Cardmarket store.
 ## Layout
 - `src/lib/model.ts` – internal `CardRow` model (source-agnostic)
 - `src/lib/csv/manabox.ts` – ManaBox CSV → `CardRow[]` + issues
-- `src/lib/scryfall.ts` – Scryfall id → Cardmarket `idProduct`
 - `src/lib/expansions.ts` + `src/data/expansions*.json` – set code → Cardmarket `idExpansion`s
-- `src/lib/planning.ts` – pure matching: pending cards × page rows → fill plan + review list
+- `src/lib/planning.ts` – pure matching by English name: pending cards × page rows → fill plan + review list
 - `src/lib/pricing.ts` – trend price with minimum per rarity
 - `src/lib/cardmarket/` – Cardmarket ids and the DOM adapter for the BulkListing page
 - `src/lib/store.ts` – extension storage (import, settings, progress)
-- `src/entrypoints/popup/` – import, Scryfall matching, settings
+- `src/entrypoints/popup/` – import, settings
 - `src/entrypoints/bulk-listing.content/` – panel injected into the BulkListing page
 - `tests/fixtures/bulk-listing.html` – hand-written replica of the listing table
 - `docs/decisions.md` – decision log; append new decisions there

@@ -13,7 +13,7 @@ export type ExpansionTable = Record<string, ExpansionEntry>;
 export interface ExpansionIndex {
   /** Number of mapped set codes. */
   readonly size: number;
-  /** Cardmarket expansion ids for a Scryfall/ManaBox set code (empty if unknown). */
+  /** Cardmarket expansion ids for a ManaBox set code (empty if unknown). */
   idsForSet(setCode: string): readonly number[];
   /** True if the set code maps to this Cardmarket expansion. */
   setIncludes(setCode: string, idExpansion: number): boolean;

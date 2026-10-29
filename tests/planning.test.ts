@@ -16,10 +16,14 @@ const pageRows: PageRow[] = [
 const plan = (cards: ReturnType<typeof card>[], expansionId: number | null = 5982) =>
   planPage({ pageRows, cards, expansionId, expansions });
 
+/** A card of the mapped set DFT. */
+const dft = (overrides: Parameters<typeof card>[0] = {}) =>
+  card({ setCode: 'DFT', name: 'Brightfield Glider', ...overrides });
+
 describe('planPage', () => {
-  it('matches by Cardmarket id and prices with trend + minimum', () => {
-    const glider = card({ cardmarketId: 808219, quantity: 2 });
-    const mustang = card({ cardmarketId: 807833, rarity: 'rare' });
+  it('matches by English name and prices with trend + minimum', () => {
+    const glider = dft({ quantity: 2 });
+    const mustang = dft({ name: 'Brightfield Mustang', rarity: 'rare' });
     const result = plan([glider, mustang]);
 
     expect(result.matched).toBe(2);
@@ -40,41 +44,36 @@ describe('planPage', () => {
     expect(result.rows[1]!.placements[0]!.price).toBe(0.5);
   });
 
-  it('matches by Cardmarket id on any page, regardless of the set mapping', () => {
-    expect(plan([card({ setCode: 'OTHER', cardmarketId: 808219 })], 1234).matched).toBe(1);
+  it('normalises case and whitespace in names', () => {
+    expect(plan([dft({ name: 'brightfield  glider ' })]).matched).toBe(1);
   });
 
-  it('ignores cards that are not on this page', () => {
-    const result = plan([card({ cardmarketId: 1 }), card({ setCode: 'DFT', name: 'Elsewhere' })]);
-    expect(result).toEqual({ rows: [], review: [], matched: 0 });
-  });
-
-  it('falls back to the English name only for mapped expansions', () => {
-    const byName = card({ setCode: 'DFT', name: 'brightfield  glider', cardmarketId: null });
-    expect(plan([byName]).matched).toBe(1);
-    expect(plan([byName], 6011).matched).toBe(1);
-    expect(plan([byName], 1234).matched).toBe(0);
+  it('matches only on pages of an expansion the set maps to', () => {
+    expect(plan([dft()], 6011).matched).toBe(1);
+    expect(plan([dft()], 1234).matched).toBe(0);
+    expect(plan([dft()], null).matched).toBe(0);
     expect(plan([card({ setCode: 'XYZ', name: 'Brightfield Glider' })]).matched).toBe(0);
   });
 
+  it('ignores cards that are not on this page', () => {
+    expect(plan([dft({ name: 'Elsewhere' })])).toEqual({ rows: [], review: [], matched: 0 });
+  });
+
   it('sends ambiguous names to review instead of guessing', () => {
-    const result = plan([card({ setCode: 'DFT', name: 'Twin Name' })]);
+    const result = plan([dft({ name: 'Twin Name' })]);
     expect(result.matched).toBe(0);
     expect(result.review).toEqual([expect.objectContaining({ reason: 'ambiguous-name' })]);
   });
 
   it('sends unavailable languages and altered cards to review', () => {
-    const result = plan([
-      card({ cardmarketId: 900003, language: 'de' }),
-      card({ cardmarketId: 808219, altered: true }),
-    ]);
+    const result = plan([dft({ name: 'English Only', language: 'de' }), dft({ altered: true })]);
     expect(result.matched).toBe(0);
     expect(result.review.map((r) => r.reason)).toEqual(['language-unavailable', 'altered']);
   });
 
   it('puts non-foil in the original row and foil in a copy', () => {
-    const foil = card({ cardmarketId: 808219, finish: 'foil' });
-    const normal = card({ cardmarketId: 808219, quantity: 3 });
+    const foil = dft({ finish: 'foil' });
+    const normal = dft({ quantity: 3 });
     const [row] = plan([foil, normal]).rows;
     expect(row!.placements.map((p) => [p.foil, p.amount])).toEqual([
       [false, 3],
@@ -83,15 +82,15 @@ describe('planPage', () => {
   });
 
   it('merges identical variants and splits amounts above 32', () => {
-    const a = card({ cardmarketId: 808219, quantity: 30 });
-    const b = card({ cardmarketId: 808219, quantity: 10 });
+    const a = dft({ quantity: 30 });
+    const b = dft({ quantity: 10 });
     const [row] = plan([a, b]).rows;
     expect(row!.placements.map((p) => p.amount)).toEqual([32, 8]);
     expect(row!.placements[0]!.sources).toEqual([a, b]);
   });
 
   it('keeps different conditions apart', () => {
-    const [row] = plan([card({ cardmarketId: 808219 }), card({ cardmarketId: 808219, condition: 'EX' })]).rows;
+    const [row] = plan([dft(), dft({ condition: 'EX' })]).rows;
     expect(row!.placements.map((p) => p.conditionId)).toEqual([2, 3]);
   });
 });

@@ -18,7 +18,6 @@ export const MANABOX_REQUIRED_COLUMNS = [
   'Foil',
   'Rarity',
   'Quantity',
-  'Scryfall ID',
   'Condition',
   'Language',
 ] as const;
@@ -131,7 +130,6 @@ function toCardRow(raw: RawRow, line: number, issues: ParseIssue[]): CardRow | n
     misprint: bool(get('Misprint')),
     altered: bool(get('Altered')),
     signed: bool(get('Signed')),
-    scryfallId: get('Scryfall ID'),
     purchasePrice:
       purchasePrice !== undefined && Number.isFinite(purchasePrice) && purchasePrice >= 0
         ? purchasePrice

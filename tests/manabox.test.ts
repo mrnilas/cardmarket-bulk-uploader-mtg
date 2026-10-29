@@ -56,7 +56,6 @@ describe('parseManaBoxCsv', () => {
       misprint: false,
       altered: false,
       signed: false,
-      scryfallId: 'e52464ee-df8b-41ec-af93-4b0eb004383e',
       purchasePrice: 0.1,
       purchaseCurrency: 'EUR',
       sourceLine: 2,

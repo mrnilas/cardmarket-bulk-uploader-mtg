@@ -79,8 +79,9 @@ all selected rows. Useful for manual fixes, not needed by the adapter.
 
 ## Consequences for the adapter
 
-1. **Matching:** ManaBox `Scryfall ID` → Scryfall `cardmarket_id` = Cardmarket `idProduct`.
-2. **Expansion:** the product id must be resolved to an `idExpansion` to load the right page.
+1. **Matching:** ManaBox `Name` = the row's English name, on pages of the expansion(s) the
+   card's set code maps to (decision #18). Duplicate names on a page need manual review.
+2. **Expansion:** the set code must be mapped to an `idExpansion` to load the right page.
 3. **Paging:** a product can be on any of the expansion's pages → walk `site=1…n`,
    fill the rows found, submit, continue.
 4. **Foil and non-foil** of the same card share one product row → needs two submissions
