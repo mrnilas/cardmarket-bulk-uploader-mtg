@@ -7,28 +7,32 @@ import { card } from './helpers';
 const expansions = createExpansionIndex({ DFT: { name: 'Aetherdrift', ids: [5982, 6011] } });
 
 const pageRows: PageRow[] = [
-  { index: 0, productId: 808219, englishName: 'Brightfield Glider', languageIds: [1, 3], trendPrice: 0.09 },
-  { index: 1, productId: 807833, englishName: 'Brightfield Mustang', languageIds: [1, 3], trendPrice: 0.5 },
-  { index: 2, productId: 900001, englishName: 'Twin Name', languageIds: [1, 3] },
-  { index: 3, productId: 900002, englishName: 'Twin Name', languageIds: [1, 3] },
-  { index: 4, productId: 900003, englishName: 'English Only', languageIds: [1], trendPrice: 3 },
+  { index: 0, productId: 808219, englishName: 'Brightfield Glider', languageIds: [1, 3], lowPrice: 0.02 },
+  { index: 1, productId: 807833, englishName: 'Brightfield Mustang', languageIds: [1, 3], lowPrice: 0.45 },
+  { index: 2, productId: 900001, englishName: 'Twin Name', languageIds: [1, 3], lowPrice: 1 },
+  { index: 3, productId: 900002, englishName: 'Twin Name', languageIds: [1, 3], lowPrice: 1 },
+  { index: 4, productId: 900003, englishName: 'English Only', languageIds: [1], lowPrice: 3 },
 ];
 
 /** Pretends MTGJSON knows these collector numbers of DFT. */
 const productIds: Record<string, number> = { '4': 808219, '400': 900002, '500': 900003 };
 const productIdFor = (c: CardRow) => (c.setCode === 'DFT' ? productIds[c.collectorNumber] : undefined);
 
+/** Price guide: lowest [non-foil, foil] offer. */
+const guide: Record<number, [number | null, number | null]> = { 808219: [0.05, 1], 807833: [0.45, null] };
+const lowestPrice = (id: number, foil: boolean) => guide[id]?.[foil ? 1 : 0] ?? undefined;
+
 const plan = (cards: ReturnType<typeof card>[], expansionId: number | null = 5982, rows = pageRows) =>
-  planPage({ pageRows: rows, cards, expansionId, expansions, productIdFor });
+  planPage({ pageRows: rows, cards, expansionId, expansions, productIdFor, lowestPrice });
 
 /** A card of the mapped set DFT. */
 const dft = (overrides: Parameters<typeof card>[0] = {}) =>
   card({ setCode: 'DFT', name: 'Brightfield Glider', ...overrides });
 
 describe('planPage', () => {
-  it('matches by English name and prices with trend + minimum', () => {
+  it('matches by English name and prices from the lowest offer', () => {
     const glider = dft({ quantity: 2 });
-    const mustang = dft({ name: 'Brightfield Mustang', rarity: 'rare' });
+    const mustang = dft({ name: 'Brightfield Mustang' });
     const result = plan([glider, mustang]);
 
     expect(result.matched).toBe(2);
@@ -42,11 +46,11 @@ describe('planPage', () => {
         foil: false,
         signed: false,
         amount: 2,
-        price: 0.1,
+        price: 0.06, // 0.05 + 10 % = 0.055 → 0.06
         sources: [glider],
       },
     ]);
-    expect(result.rows[1]!.placements[0]!.price).toBe(0.5);
+    expect(result.rows[1]!.placements[0]!.price).toBe(0.5); // 0.45 + 10 % = 0.495 → 0.50
   });
 
   it('matches by Cardmarket id before the name, on any page', () => {
@@ -96,10 +100,22 @@ describe('planPage', () => {
     const foil = dft({ finish: 'foil' });
     const normal = dft({ quantity: 3 });
     const [row] = plan([foil, normal]).rows;
-    expect(row!.placements.map((p) => [p.foil, p.amount])).toEqual([
-      [false, 3],
-      [true, 1],
+    expect(row!.placements.map((p) => [p.foil, p.amount, p.price])).toEqual([
+      [false, 3, 0.06],
+      [true, 1, 1.1],
     ]);
+  });
+
+  it('prices foils only from the foil offer, never from the non-foil row price', () => {
+    const mustangFoil = dft({ name: 'Brightfield Mustang', finish: 'foil' });
+    const result = plan([mustangFoil]);
+    expect(result.matched).toBe(0);
+    expect(result.review).toEqual([expect.objectContaining({ reason: 'no-price', card: mustangFoil })]);
+  });
+
+  it('falls back to the row price for non-foils missing in the price guide', () => {
+    const [row] = plan([dft({ name: 'Twin Name', collectorNumber: '400' })]).rows;
+    expect(row!.placements[0]!.price).toBe(1.1);
   });
 
   it('merges identical variants and splits amounts above 32', () => {

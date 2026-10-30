@@ -32,8 +32,9 @@ ManaBox CSV export in the user's Cardmarket store.
 - `src/lib/mtgjson.ts` – MTGJSON downloads: expansion table (SetList) and per-set card ids
   (collector number → `idProduct`); both cached in `store.ts`
 - `src/lib/planning.ts` – pure matching (`idProduct`, English name as fallback): pending cards × page rows → fill plan + review list
-- `src/lib/pricing.ts` – trend price with minimum per rarity
-- `src/lib/cardmarket/` – Cardmarket ids and the DOM adapter for the BulkListing page
+- `src/lib/pricing.ts` – lowest offer (same foiling) + markup, rounded up to cents
+- `src/lib/cardmarket/` – Cardmarket ids, the DOM adapter for the BulkListing page and the
+  public price guide download (`price-guide.ts`)
 - `src/lib/store.ts` – extension storage (import, settings, progress)
 - `src/entrypoints/background.ts` – icon click opens the listing page; MTGJSON downloads
 - `src/entrypoints/bulk-listing.content/` – panel injected into the BulkListing page: import,

@@ -1,32 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { computePrice, DEFAULT_PRICE_RULES } from '../src/lib/pricing';
+import { computePrice } from '../src/lib/pricing';
 
 describe('computePrice', () => {
-  it('uses the trend price when above the minimum', () => {
-    expect(computePrice('common', 0.37)).toBe(0.37);
-    expect(computePrice('rare', 4.5)).toBe(4.5);
+  it('adds 10 % to the lowest offer and rounds up to full cents', () => {
+    expect(computePrice(1)).toBe(1.1);
+    expect(computePrice(0.25)).toBe(0.28);
+    expect(computePrice(4.72)).toBe(5.2); // 5.192 → 5.20
+    expect(computePrice(7.95)).toBe(8.75); // 8.745 → 8.75
+    expect(computePrice(0.3)).toBe(0.33);
+    expect(computePrice(0.02)).toBe(0.03); // 2.2 ct → 3 ct
   });
 
-  it('never goes below the minimum for the rarity', () => {
-    expect(computePrice('common', 0.02)).toBe(0.1);
-    expect(computePrice('uncommon', 0.09)).toBe(0.1);
-    expect(computePrice('rare', 0.15)).toBe(0.25);
-    expect(computePrice('mythic', 0.2)).toBe(0.25);
+  it('never goes below the Cardmarket floor of 0.02 €', () => {
+    expect(computePrice(0)).toBe(0.02);
+    expect(computePrice(Number.NaN)).toBe(0.02);
+    expect(computePrice(0.01, { markupPercent: 0 })).toBe(0.02);
   });
 
-  it('falls back to the minimum without a usable trend price', () => {
-    expect(computePrice('common', undefined)).toBe(0.1);
-    expect(computePrice('rare', 0)).toBe(0.25);
-    expect(computePrice('rare', Number.NaN)).toBe(0.25);
-  });
-
-  it('rounds to cents', () => {
-    expect(computePrice('common', 0.456)).toBe(0.46);
-  });
-
-  it('respects custom rules and the Cardmarket floor of 0.02 €', () => {
-    const rules = { minPrice: { ...DEFAULT_PRICE_RULES.minPrice, common: 0 } };
-    expect(computePrice('common', undefined, rules)).toBe(0.02);
-    expect(computePrice('common', 0.05, rules)).toBe(0.05);
+  it('respects a custom markup', () => {
+    expect(computePrice(0.5, { markupPercent: 0 })).toBe(0.5);
+    expect(computePrice(0.5, { markupPercent: 25 })).toBe(0.63);
   });
 });

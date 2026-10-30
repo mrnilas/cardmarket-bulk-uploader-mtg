@@ -11,7 +11,8 @@ export interface PageRow {
   englishName: string;
   /** `idLanguage` values offered for this product. */
   languageIds: number[];
-  trendPrice?: number;
+  /** Lowest non-foil offer shown in the row (fallback if the price guide has none). */
+  lowPrice?: number;
 }
 
 /** What to write into one table row (original or copy). */
@@ -33,7 +34,7 @@ export interface RowPlan {
   placements: Placement[];
 }
 
-export type ReviewReason = 'ambiguous-name' | 'language-unavailable' | 'altered';
+export type ReviewReason = 'ambiguous-name' | 'language-unavailable' | 'altered' | 'no-price';
 
 export interface ReviewItem {
   card: CardRow;
@@ -57,6 +58,8 @@ export interface PlanInput {
   expansions: ExpansionIndex;
   /** Cardmarket `idProduct` from MTGJSON (set code + collector number), if known. */
   productIdFor?: (card: CardRow) => number | undefined;
+  /** Lowest offer of a product in this foiling (Cardmarket price guide), if known. */
+  lowestPrice?: (productId: number, foil: boolean) => number | undefined;
   priceRules?: PriceRules;
 }
 
@@ -72,6 +75,7 @@ export function planPage(input: PlanInput): PagePlan {
   const { pageRows, cards, expansionId, expansions } = input;
   const priceRules = input.priceRules ?? DEFAULT_PRICE_RULES;
   const productIdFor = input.productIdFor ?? (() => undefined);
+  const lowestPrice = input.lowestPrice ?? (() => undefined);
 
   const byProduct = new Map(pageRows.map((row) => [row.productId, row]));
 
@@ -119,10 +123,21 @@ export function planPage(input: PlanInput): PagePlan {
       continue;
     }
 
+    const foil = card.finish !== 'normal';
+    // Foils have no fallback: the row only shows the non-foil price.
+    const lowest = lowestPrice(row.productId, foil) ?? (foil ? undefined : row.lowPrice);
+    if (lowest === undefined) {
+      review.push({
+        card,
+        reason: 'no-price',
+        detail: `No ${foil ? 'foil' : 'non-foil'} offer on Cardmarket to price it from`,
+      });
+      continue;
+    }
+
     const group = groups.get(row.productId) ?? { row, variants: new Map<string, Placement>() };
     groups.set(row.productId, group);
 
-    const foil = card.finish !== 'normal';
     const conditionId = CONDITION_IDS[card.condition];
     const key = [languageId, conditionId, foil, card.signed].join('|');
     const existing = group.variants.get(key);
@@ -137,7 +152,7 @@ export function planPage(input: PlanInput): PagePlan {
         foil,
         signed: card.signed,
         amount: card.quantity,
-        price: computePrice(card.rarity, row.trendPrice, priceRules),
+        price: computePrice(lowest, priceRules),
         sources: [card],
       });
     }

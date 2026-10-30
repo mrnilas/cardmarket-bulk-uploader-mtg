@@ -6,7 +6,8 @@ import {
   type FillReport,
 } from '../../lib/cardmarket/bulk-listing';
 import { bulkListingUrl, type ExpansionIndex } from '../../lib/expansions';
-import { requestSetCards } from '../../lib/messages';
+import { lowestPrice, type LowestPrices } from '../../lib/cardmarket/price-guide';
+import { requestPrices, requestSetCards } from '../../lib/messages';
 import type { CardRow } from '../../lib/model';
 import { planPage, type PagePlan } from '../../lib/planning';
 import {
@@ -42,12 +43,19 @@ interface CardIdState {
   failed: Set<string>;
 }
 
+/** Lowest offers of the products on this page, from Cardmarket's price guide. */
+type PriceState =
+  | { status: 'loading' }
+  | { status: 'ready'; prices: Record<string, LowestPrices>; priceDate: string }
+  | { status: 'failed'; error: string };
+
 interface State extends SetupState {
   plan?: PagePlan;
   report?: FillReport;
   submit: SubmitState;
   collapsed: boolean;
   cardIds: CardIdState;
+  prices?: PriceState;
 }
 
 /** Mounts the helper panel on the "List by expansion" page. Returns an unmount function. */
@@ -130,6 +138,8 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
   const productIdFor = productIdLookup(cache);
   const missingSets = setsNeedingCardIds(pending, cache).filter((code) => !state.cardIds.failed.has(code));
   if (missingSets.length && !state.cardIds.loading && !state.report) void loadCardIds(state, render, missingSets);
+  if (!state.prices && page.rows.length) void loadPrices(state, render, page.rows.map((r) => r.productId));
+  const prices = state.prices?.status === 'ready' ? state.prices.prices : {};
 
   if (!state.report) {
     state.plan = planPage({
@@ -138,6 +148,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
       expansionId: page.expansionId,
       expansions,
       productIdFor,
+      lowestPrice: (productId, foil) => lowestPrice(prices, productId, foil),
       priceRules: settings.priceRules,
     });
   }
@@ -167,7 +178,7 @@ async function buildContent(state: State, render: () => Promise<void>): Promise<
     ),
   );
 
-  nodes.push(...cardIdNodes(state, render, pending, productIdFor));
+  nodes.push(...cardIdNodes(state, render, pending, productIdFor), ...priceNodes(state, render));
 
   if (plan.review.length) {
     nodes.push(
@@ -197,6 +208,46 @@ async function loadCardIds(state: State, render: () => Promise<void>, setCodes: 
   }
   state.cardIds.loading = undefined;
   if (!state.report) await render();
+}
+
+async function loadPrices(state: State, render: () => Promise<void>, productIds: number[]): Promise<void> {
+  state.prices = { status: 'loading' };
+  await render();
+  const result = await requestPrices(productIds);
+  state.prices =
+    result.ok && result.prices && result.priceDate
+      ? { status: 'ready', prices: result.prices, priceDate: result.priceDate }
+      : { status: 'failed', error: result.error ?? 'unknown error' };
+  if (!state.report) await render();
+}
+
+function priceNodes(state: State, render: () => Promise<void>): Node[] {
+  const prices = state.prices;
+  if (!prices) return [];
+  if (prices.status === 'loading') {
+    return [h('p', { class: 'muted' }, 'Loading Cardmarket price guide… (first time ~26 MB)')];
+  }
+  if (prices.status === 'ready') {
+    return [h('p', { class: 'muted' }, `Prices: Cardmarket price guide of ${new Date(prices.priceDate).toLocaleDateString()}`)];
+  }
+  return [
+    h(
+      'p',
+      { class: 'warn' },
+      `Price guide unavailable (${prices.error}) – non-foils use the lowest price shown here, foils go to review.`,
+    ),
+    h(
+      'button',
+      {
+        disabled: Boolean(state.report),
+        onclick: () => {
+          state.prices = undefined;
+          void render();
+        },
+      },
+      'Retry',
+    ),
+  ];
 }
 
 function cardIdNodes(
@@ -251,7 +302,7 @@ function actionNodes(state: State, render: () => Promise<void>, planCards: numbe
         {
           class: 'primary',
           // Wait for the card ids – otherwise variants would be matched by name.
-          disabled: !plan?.rows.length || Boolean(state.cardIds.loading),
+          disabled: !plan?.rows.length || Boolean(state.cardIds.loading) || state.prices?.status === 'loading',
           onclick: async () => {
             if (!state.plan) return;
             state.report = await applyPlan(document, state.plan.rows);

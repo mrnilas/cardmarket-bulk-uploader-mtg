@@ -66,14 +66,14 @@ function parseRow(tr: HTMLTableRowElement, index: number): PageRow | null {
     .map((option) => Number(option.value))
     .filter((id) => id > 0);
 
-  const trend = Number.parseFloat(tr.querySelector<HTMLInputElement>('input[name="trendPrice"]')?.value ?? '');
+  const low = Number.parseFloat(tr.querySelector<HTMLInputElement>('input[name="lowPrice"]')?.value ?? '');
 
   return {
     index,
     productId,
     englishName,
     languageIds,
-    trendPrice: Number.isFinite(trend) ? trend : undefined,
+    lowPrice: Number.isFinite(low) && low > 0 ? low : undefined,
   };
 }
 

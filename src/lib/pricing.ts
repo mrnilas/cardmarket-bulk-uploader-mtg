@@ -1,32 +1,20 @@
 import { CARDMARKET_MIN_PRICE } from './cardmarket/ids';
-import type { Rarity } from './model';
 
 export interface PriceRules {
-  /** Minimum selling price in EUR per rarity. */
-  minPrice: Record<Rarity, number>;
+  /** Markup on the lowest offer in percent. */
+  markupPercent: number;
 }
 
-export const DEFAULT_PRICE_RULES: PriceRules = {
-  minPrice: {
-    common: 0.1,
-    uncommon: 0.1,
-    rare: 0.25,
-    mythic: 0.25,
-    special: 0.25,
-    bonus: 0.25,
-  },
-};
+export const DEFAULT_PRICE_RULES: PriceRules = { markupPercent: 10 };
 
 /**
- * Selling price = Cardmarket trend price, but never below the minimum for the
- * card's rarity and never below Cardmarket's floor. Rounded to cents.
+ * Selling price = lowest offer of the same foiling plus the markup, rounded
+ * **up** to full cents (1.00 € → 1.10 €, 0.25 € → 0.28 €). Calculated in cents
+ * to avoid float errors; never below Cardmarket's floor.
  */
-export function computePrice(
-  rarity: Rarity,
-  trendPrice: number | undefined,
-  rules: PriceRules = DEFAULT_PRICE_RULES,
-): number {
-  const trend = trendPrice !== undefined && Number.isFinite(trendPrice) && trendPrice > 0 ? trendPrice : 0;
-  const price = Math.max(trend, rules.minPrice[rarity], CARDMARKET_MIN_PRICE);
-  return Math.round(price * 100) / 100;
+export function computePrice(lowestPrice: number, rules: PriceRules = DEFAULT_PRICE_RULES): number {
+  const baseCents = Math.round((Number.isFinite(lowestPrice) ? lowestPrice : 0) * 100);
+  // The epsilon keeps exact results (100 ct × 110 % = 110 ct) from being bumped by float noise.
+  const cents = Math.ceil((baseCents * (100 + rules.markupPercent)) / 100 - 1e-9);
+  return Math.max(cents, Math.round(CARDMARKET_MIN_PRICE * 100)) / 100;
 }

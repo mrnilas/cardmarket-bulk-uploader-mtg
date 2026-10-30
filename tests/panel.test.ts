@@ -69,5 +69,8 @@ describe('panel', () => {
     await until(() => text().includes('Filled 3 cards'));
     expect(document.querySelector<HTMLInputElement>('[name="amount[1]"]')!.value).toBe('3');
     expect(document.querySelector<HTMLInputElement>('[name="amount[0]"]')!.value).toBe('0');
+    // No price guide in tests → the row's lowest price 1.20 € + 10 %.
+    expect(document.querySelector<HTMLInputElement>('[name="price[1]"]')!.value).toBe('1.32');
+    expect(text()).toContain('Price guide unavailable');
   });
 });

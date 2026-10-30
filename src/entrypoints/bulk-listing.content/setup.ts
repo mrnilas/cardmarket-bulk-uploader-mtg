@@ -5,7 +5,7 @@
 import { parseManaBoxCsv } from '../../lib/csv/manabox';
 import { summarize } from '../../lib/grouping';
 import { requestExpansionRefresh } from '../../lib/messages';
-import type { Language, ParseIssue, Rarity } from '../../lib/model';
+import type { Language, ParseIssue } from '../../lib/model';
 import {
   currentImport,
   expansionTableInfo,
@@ -18,7 +18,6 @@ import {
 import { formatNumber, h } from '../../lib/ui/dom';
 
 const MAX_ISSUES_SHOWN = 50;
-const PRICE_FIELDS = ['common', 'uncommon', 'rare', 'mythic'] as const;
 
 export interface SetupState {
   /** Issues of the last import in this tab (not stored). */
@@ -199,29 +198,24 @@ function pricesNode(settings: Settings, locked: boolean, render: Render): Node {
   return h(
     'fieldset',
     { class: 'prices' },
-    h('legend', {}, 'Minimum price (€) – trend price, but never below'),
-    ...PRICE_FIELDS.map((rarity) =>
-      h(
-        'label',
-        {},
-        rarity[0]!.toUpperCase() + rarity.slice(1),
-        h('input', {
-          type: 'number',
-          min: 0.02,
-          step: 0.01,
-          value: settings.priceRules.minPrice[rarity].toFixed(2),
-          disabled: locked,
-          onchange: async (event: Event) => {
-            const value = Number((event.target as HTMLInputElement).value);
-            if (!Number.isFinite(value) || value < 0.02) return render();
-            const { priceRules } = await loadSettings();
-            const minPrice: Record<Rarity, number> = { ...priceRules.minPrice, [rarity]: value };
-            // Special/bonus cards follow the rare minimum.
-            if (rarity === 'rare') Object.assign(minPrice, { special: value, bonus: value });
-            await saveSettings({ priceRules: { minPrice } });
-          },
-        }),
-      ),
+    h('legend', {}, 'Price = lowest offer (same foiling) plus markup, rounded up to cents'),
+    h(
+      'label',
+      {},
+      'Markup (%)',
+      h('input', {
+        type: 'number',
+        min: 0,
+        step: 1,
+        value: settings.priceRules.markupPercent,
+        disabled: locked,
+        onchange: async (event: Event) => {
+          const value = Number((event.target as HTMLInputElement).value);
+          if (!Number.isFinite(value) || value < 0) return render();
+          const { priceRules } = await loadSettings();
+          await saveSettings({ priceRules: { ...priceRules, markupPercent: value } });
+        },
+      }),
     ),
   );
 }

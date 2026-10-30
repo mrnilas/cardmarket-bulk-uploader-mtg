@@ -86,8 +86,17 @@ all selected rows. Useful for manual fixes, not needed by the adapter.
    fill the rows found, submit, continue.
 4. **Foil and non-foil** of the same card share one product row → needs two submissions
    (or the "copy row" button) when both exist in the CSV.
-5. **Pricing:** trend/low/average prices are available in the row; no extra request needed.
+5. **Pricing:** the row only has non-foil prices (foil-only products show `trendPrice` 0), so prices
+   come from Cardmarket's public price guide (`low`, `low-foil` per `idProduct`, decision #22).
 6. **Safety:** fill → show diff/preview → submit only after user confirmation (dry run first).
+
+## Price guide
+
+`https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_1.json` (Magic),
+public, renewed daily around 02:00 CET, ~26 MB, no CORS headers (fetched by the background
+script). `{ version, createdAt: "2026-10-29T02:52:45+0100", priceGuides: [...] }` with one
+entry per `idProduct`: `avg`, `low`, `trend`, `avg1`, `avg7`, `avg30` and the same with
+`-foil` suffix; missing values are `null`, products without non-foil offers have `trend` 0.
 
 ## Open questions
 

@@ -60,8 +60,8 @@ describe('readPage', () => {
       'https://www.cardmarket.com/en/Magic/Stock/ListingMethods/BulkListing?idExpansion=5982&sortBy=number&site=2',
     );
     expect(page.rows).toEqual([
-      { index: 0, productId: 808219, englishName: 'Brightfield Glider', languageIds: [1, 3], trendPrice: 0.09 },
-      { index: 1, productId: 807000, englishName: "Basri, Tomorrow's Champion", languageIds: [1, 3], trendPrice: 1.75 },
+      { index: 0, productId: 808219, englishName: 'Brightfield Glider', languageIds: [1, 3], lowPrice: 0.02 },
+      { index: 1, productId: 807000, englishName: "Basri, Tomorrow's Champion", languageIds: [1, 3], lowPrice: 1.2 },
     ]);
   });
 

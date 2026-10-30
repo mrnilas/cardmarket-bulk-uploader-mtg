@@ -1,18 +1,25 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { BULK_LISTING_MATCHES } from '../lib/cardmarket/bulk-listing';
+import type { LowestPrices, PriceGuide } from '../lib/cardmarket/price-guide';
 import { bulkListingUrl, CARDMARKET_LOCALES } from '../lib/expansions';
 import { isBackgroundMessage, type BackgroundMessage, type BackgroundResult } from '../lib/messages';
 import {
   currentImport,
   loadExpansionIndex,
+  loadPriceGuide,
   loadSetCardIds,
   loadSettings,
   pendingCards,
   pendingExpansions,
+  priceGuideIsStale,
   progress,
   refreshExpansionTable,
 } from '../lib/store';
+
+/** Price guide kept in memory while the background runs; one download for all tabs. */
+let priceGuide: PriceGuide | undefined;
+let priceGuideLoading: Promise<PriceGuide> | undefined;
 
 export default defineBackground(() => {
   const refresh = () =>
@@ -38,7 +45,20 @@ async function handle(message: BackgroundMessage): Promise<BackgroundResult> {
       return { ok: true, updated: await refreshExpansionTable({ force: message.force }) };
     case 'load-set-cards':
       return { ok: true, cards: await loadSetCardIds(message.setCode) };
+    case 'get-prices': {
+      const guide = await currentPriceGuide();
+      const prices: Record<string, LowestPrices> = {};
+      for (const id of message.productIds) if (guide.prices[id]) prices[id] = guide.prices[id];
+      return { ok: true, prices, priceDate: guide.createdAt };
+    }
   }
+}
+
+async function currentPriceGuide(): Promise<PriceGuide> {
+  if (priceGuide && !priceGuideIsStale(priceGuide)) return priceGuide;
+  priceGuideLoading ??= loadPriceGuide().finally(() => (priceGuideLoading = undefined));
+  priceGuide = await priceGuideLoading;
+  return priceGuide;
 }
 
 /** Focuses an open listing tab, or opens the first expansion with pending cards. */

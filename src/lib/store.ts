@@ -1,4 +1,5 @@
 import { storage } from 'wxt/utils/storage';
+import { fetchPriceGuide, type PriceGuide } from './cardmarket/price-guide';
 import {
   bundledExpansionTable,
   bundledExpansionTableDate,
@@ -100,6 +101,36 @@ export async function loadSetCardIds(setCode: string, doFetch?: typeof fetch): P
   return ids ? Object.keys(ids).length : 0;
 }
 
+/**
+ * Cardmarket's price guide, reduced to the lowest offers (~3 MB). Only the
+ * background script reads it; tabs ask for the products on their page.
+ */
+export const priceGuideItem = storage.defineItem<PriceGuide | null>('local:priceGuide', { fallback: null });
+
+/** Cardmarket publishes a new price guide once a day. */
+export const PRICE_GUIDE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/** If the file has not been renewed yet, wait this long before asking again. */
+export const PRICE_GUIDE_RETRY_MS = 60 * 60 * 1000;
+
+export function priceGuideIsStale(guide: PriceGuide | null, now = Date.now()): boolean {
+  if (!guide) return true;
+  return now - Date.parse(guide.createdAt) >= PRICE_GUIDE_MAX_AGE_MS && now - Date.parse(guide.fetchedAt) >= PRICE_GUIDE_RETRY_MS;
+}
+
+/** Stored price guide, renewed when stale. A failed download falls back to the stored one. */
+export async function loadPriceGuide(options: { now?: number; fetch?: typeof fetch } = {}): Promise<PriceGuide> {
+  const stored = await priceGuideItem.getValue();
+  if (!priceGuideIsStale(stored, options.now)) return stored!;
+  try {
+    const fresh = await fetchPriceGuide(options.fetch);
+    await priceGuideItem.setValue(fresh);
+    return fresh;
+  } catch (error) {
+    if (stored) return stored;
+    throw error;
+  }
+}
+
 export interface ExpansionTableInfo {
   source: 'mtgjson' | 'bundled';
   sets: number;
@@ -138,9 +169,8 @@ export async function loadSettings(): Promise<Settings> {
   const stored = await settingsItem.getValue();
   return {
     language: stored.language ?? null,
-    priceRules: {
-      minPrice: { ...DEFAULT_PRICE_RULES.minPrice, ...stored.priceRules?.minPrice },
-    },
+    // Older versions also stored minimum prices per rarity; they are ignored.
+    priceRules: { markupPercent: stored.priceRules?.markupPercent ?? DEFAULT_PRICE_RULES.markupPercent },
   };
 }
 

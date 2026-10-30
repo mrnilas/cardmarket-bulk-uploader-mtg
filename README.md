@@ -11,7 +11,7 @@ Browser extension for **Chrome and Firefox** that lists Magic: The Gathering car
 - [x] Parse and validate ManaBox CSV exports
 - [x] Match cards to Cardmarket products by set and collector number (via MTGJSON), English name as fallback
 - [x] Fill Cardmarket's "List by expansion" form (language, condition, foil, amount, price)
-- [x] Price = trend price, never below a minimum per rarity
+- [x] Price = lowest offer of the same foiling + 10 %, rounded up to cents
 - [x] Foil and non-foil of one card via Cardmarket's "copy row"
 - [x] Progress across pages and expansions
 - [ ] Live-tested on Cardmarket
@@ -26,7 +26,7 @@ submits** – you review the highlighted rows and click Cardmarket's list button
    Cardmarket (or switches to an open listing tab). Everything else happens in the panel
    the extension adds to that page.
 2. **Import & settings** (in the panel): import your ManaBox CSV, choose the language to
-   list (one language per run) and adjust the minimum prices.
+   list (one language per run) and adjust the price markup.
 3. **Fill:** the panel matches your cards to the table – exactly by set and collector number
    (Cardmarket ids from [MTGJSON](https://mtgjson.com), downloaded once per set), by English
    name where MTGJSON has no id – and shows how many of them are on this page. *Fill form* writes them into the table; anything uncertain
@@ -80,6 +80,7 @@ Cardmarket page in [`docs/cardmarket-bulk-listing.md`](docs/cardmarket-bulk-list
 ## Data sources
 
 - Expansion and product ids: [MTGJSON](https://mtgjson.com) (MIT)
+- Prices: Cardmarket's public daily price guide
 
 ## Disclaimer
 
